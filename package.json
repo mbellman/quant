@@ -4,7 +4,8 @@
   "description": "Just dabbling.",
   "main": "index.js",
   "scripts": {
-    "demo": "tsc && node dist/server.js"
+    "demo": "node run.js",
+    "build": "tsc && webpack --config webpack.config.js"
   },
   "repository": {
     "type": "git",
@@ -20,6 +21,14 @@
     "@types/express": "^4.17.6",
     "@types/node": "^13.13.5",
     "express": "^4.17.1",
-    "typescript": "^3.8.3"
+    "html-webpack-plugin": "^4.3.0",
+    "ts-loader": "^7.0.3",
+    "typescript": "^3.8.3",
+    "webpack": "^4.43.0",
+    "webpack-cli": "^3.3.11",
+    "webpack-dev-server": "^3.11.0"
+  },
+  "dependencies": {
+    "axios": "^0.19.2"
   }
 }

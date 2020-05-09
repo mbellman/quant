@@ -1,11 +1,11 @@
 {
   "compilerOptions": {
     "esModuleInterop": true,
-    "outDir": "./dist/",
+    "outDir": "./dist/server/",
     "resolveJsonModule": true
   },
   "include": [
-    "src/**/*"
+    "server/**/*"
   ],
   "exclude": [
     "node_modules"

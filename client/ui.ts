@@ -1,4 +1,4 @@
-declare var axios;
+import axios from 'axios';
 
 interface Range {
   high: number;
