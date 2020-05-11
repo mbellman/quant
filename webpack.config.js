@@ -1,6 +1,9 @@
 const path = require('path');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
-const { serve } = require('./dist/server/server');
+
+function clearModuleCache() {
+  Object.keys(require.cache).forEach(key => delete require.cache[key]);
+}
 
 module.exports = {
   devtool: false,
@@ -12,7 +15,16 @@ module.exports = {
   },
   devServer: {
     open: true,
-    before: serve
+    before: app => {
+      app.get('/api/*', async (_, res) => {
+        clearModuleCache();
+
+        const { getSymbolData } = require('./dist/server/server');
+        const data = await getSymbolData('MSFT');
+
+        res.send(data);
+      });
+    }
   },
   module: {
     rules: [

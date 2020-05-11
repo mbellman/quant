@@ -4,8 +4,10 @@
   "description": "Just dabbling.",
   "main": "index.js",
   "scripts": {
-    "demo": "node run.js",
-    "build": "tsc && webpack --config webpack.config.js"
+    "build:server": "rm -rf dist/server && tsc",
+    "build:client": "rm -rf dist/cleint && webpack --config webpack.config.js",
+    "build": "npm run build:server && npm run build:client",
+    "demo": "npm run build:server && node run.js"
   },
   "repository": {
     "type": "git",
