@@ -8,7 +8,7 @@ function clearModuleCache() {
 module.exports = {
   devtool: false,
   mode: 'development',
-  entry: './client/ui.ts',
+  entry: './src/client/index.ts',
   output: {
     path: path.resolve(__dirname, 'dist/client'),
     filename: 'app.js'
@@ -19,7 +19,7 @@ module.exports = {
       app.get('/api/*', async (_, res) => {
         clearModuleCache();
 
-        const { getSymbolData } = require('./dist/server/server');
+        const { getSymbolData } = require('./dist/server');
         const data = await getSymbolData('MSFT');
 
         res.send(data);
@@ -37,7 +37,7 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       filename: 'index.html',
-      template: './client/index.html',
+      template: './src/client/index.html',
       inject: true
     })
   ],
