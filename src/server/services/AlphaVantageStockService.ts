@@ -1,8 +1,11 @@
 import AbstractStockService from './AbstractStockService';
 import { Interval, SymbolData } from '../types';
-import msft57 from '../samples/msft-05-07-20.json';
-import msft58 from '../samples/msft-05-08-20.json';
+import msft from '../samples/msft.json';
 import msftDaily from '../samples/msft-daily.json';
+import aapl from '../samples/aapl.json';
+import aaplDaily from '../samples/aapl-daily.json';
+import amd from '../samples/amd.json';
+import amdDaily from '../samples/amd-daily.json';
 import { getMovingAverage } from '../analysis';
 
 type AlphaVantageShareData = {
@@ -20,9 +23,7 @@ type AlphaVantageResponse = {
     '1. Information': string;
     '2. Symbol': string;
     '3. Last Refreshed': string;
-    '4. Interval': string;
-    '5. Output Size': string;
-    '6. Time Zone': string;
+    '4. Interval'?: string;
   };
   'Time Series (Daily)'?: AlphaVantageShareDataSet;
   'Time Series (5min)'?: AlphaVantageShareDataSet;
@@ -31,14 +32,14 @@ type AlphaVantageResponse = {
 export default class AlphaVantageStockService extends AbstractStockService {
   public async fetch(symbol: string): Promise<SymbolData> {
     try {
-      return this.transform(msft58);
+      return this.transform(amd);
     } catch(e) {
       console.log(e);
     }
   }
 
   private transform(response: AlphaVantageResponse): SymbolData {
-    const interval = response['Meta Data']['4. Interval'];
+    const interval = response['Meta Data']['4. Interval'] || 'Daily';
     const intervals = this.createIntervals(response[`Time Series (${interval})`]);
     const highs = intervals.map(({ high }) => high);
     const lows = intervals.map(({ low }) => low);
