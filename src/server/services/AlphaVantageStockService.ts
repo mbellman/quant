@@ -6,7 +6,7 @@ import aapl from '../samples/aapl.json';
 import aaplDaily from '../samples/aapl-daily.json';
 import amd from '../samples/amd.json';
 import amdDaily from '../samples/amd-daily.json';
-import { getMovingAverage } from '../analysis';
+import { getMovingAverage, getDips, getPeaks } from '../analysis';
 
 type AlphaVantageShareData = {
   '1. open': string;
@@ -32,7 +32,7 @@ type AlphaVantageResponse = {
 export default class AlphaVantageStockService extends AbstractStockService {
   public async fetch(symbol: string): Promise<SymbolData> {
     try {
-      return this.transform(amd);
+      return this.transform(msft);
     } catch(e) {
       console.log(e);
     }
@@ -51,6 +51,8 @@ export default class AlphaVantageStockService extends AbstractStockService {
       },
       intervals,
       movingAverage: getMovingAverage(intervals),
+      peaks: getPeaks(intervals),
+      dips: getDips(intervals),
       prediction: []
     };
   }

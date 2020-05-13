@@ -29,7 +29,15 @@ function rectangle({ x, y, width, height }: Rect): void {
   ctx.fill();
 }
 
-function drawCandle({ open, close, high, low }: Interval, bounds: Rect): void {
+function circle(point: Point, radius: number, color: string): void {
+  ctx.fillStyle = color;
+
+  ctx.beginPath();
+  ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawCandlestick({ open, close, high, low }: Interval, bounds: Rect): void {
   const dy = bounds.height / (high - low);
   const isGreen = close > open;
   const color = isGreen ? '#0f0' : '#f00';
@@ -53,23 +61,15 @@ function drawCandle({ open, close, high, low }: Interval, bounds: Rect): void {
   );
 }
 
-function drawIntervals({ intervals, range: { high, low } }: SymbolData): void {
+function drawIntervals({ intervals, range: { high, low } }: SymbolData, scale: number = 1.0): void {
   const dx = canvas.width / intervals.length;
-  const dy = canvas.height / (high - low);
-
-  ctx.fillStyle = '#015';
-
-  rectangle({
-    x: 0,
-    y: 0,
-    width: canvas.width,
-    height: canvas.height
-  });
+  const dy = canvas.height / (high - low) * scale;
+  const offset = canvas.height * (1 - scale) * 0.5;
 
   for (let i = 0; i < intervals.length; i++) {
     const interval = intervals[i];
-    const y = (high - interval.high) * dy;
-    const height = (high - interval.low) * dy - y;
+    const y = (high - interval.high) * dy + offset;
+    const height = (high - interval.low) * dy + offset - y;
 
     const bounds: Rect = {
       x: dx * i,
@@ -78,13 +78,14 @@ function drawIntervals({ intervals, range: { high, low } }: SymbolData): void {
       height
     };
 
-    drawCandle(interval, bounds);
+    drawCandlestick(interval, bounds);
   }
 }
 
-function drawMovingAverage({ movingAverage, range: { high, low } }: SymbolData): void {
+function drawMovingAverage({ movingAverage, range: { high, low } }: SymbolData, scale: number = 1.0): void {
   const dx = canvas.width / movingAverage.length;
-  const dy = canvas.height / Math.abs(high - low);
+  const dy = canvas.height / (high - low) * scale;
+  const offset = canvas.height * (1 - scale) * 0.5;
 
   ctx.strokeStyle = '#0ff';
   ctx.lineWidth = 2;
@@ -95,13 +96,55 @@ function drawMovingAverage({ movingAverage, range: { high, low } }: SymbolData):
     const average = movingAverage[i];
 
     line(
-      { x: previousIndex * dx + dx / 2, y: (high - previousAverage) * dy },
-      { x: i * dx + dx / 2, y: (high - average) * dy }
+      { x: previousIndex * dx + dx / 2, y: (high - previousAverage) * dy + offset },
+      { x: i * dx + dx / 2, y: (high - average) * dy + offset }
     );
   }
 }
 
+function drawReversals({ intervals, peaks, dips, range: { high, low } }: SymbolData, scale: number = 1.0): void {
+  const dx = canvas.width / intervals.length;
+  const dy = canvas.height / (high - low) * scale;
+  const offset = canvas.height * (1 - scale) * 0.5;
+
+  for (const peak of peaks) {
+    const interval = intervals[peak];
+
+    const point: Point = {
+      x: dx * peak + dx / 2,
+      y: (high - interval.high) * dy + offset
+    };
+
+    circle(point, 8, '#000');
+    circle(point, 5, '#0f0');
+  }
+
+  for (const dip of dips) {
+    const interval = intervals[dip];
+
+    const point: Point = {
+      x: dx * dip + dx / 2,
+      y: (high - interval.low) * dy + offset
+    };
+
+    circle(point, 8, '#000');
+    circle(point, 5, '#f00');
+  }
+}
+
 export function plotData(data: SymbolData): void {
-  drawIntervals(data);
-  drawMovingAverage(data);
+  ctx.fillStyle = '#015';
+
+  rectangle({
+    x: 0,
+    y: 0,
+    width: canvas.width,
+    height: canvas.height
+  });
+
+  const scale = 0.9;
+
+  drawIntervals(data, scale);
+  drawMovingAverage(data, scale);
+  drawReversals(data, scale);
 }

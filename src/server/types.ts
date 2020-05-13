@@ -14,5 +14,7 @@ export interface SymbolData {
   range: Range;
   intervals: Interval[];
   movingAverage: number[];
+  peaks: number[];
+  dips: number[];
   prediction: number[];
 }
