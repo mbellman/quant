@@ -13,7 +13,9 @@ type AlphaVantageShareData = {
   '2. high': string;
   '3. low': string;
   '4. close': string;
-  '5. volume': string;
+  '5. volume'?: string;
+  '5. adjusted close'?: string;
+  '6. volume'?: string;
 };
 
 type AlphaVantageShareDataSet = Record<string, AlphaVantageShareData>;
@@ -32,7 +34,7 @@ type AlphaVantageResponse = {
 export default class AlphaVantageStockService extends AbstractStockService {
   public async fetch(symbol: string): Promise<SymbolData> {
     try {
-      return this.transform(msft);
+      return this.transform(amdDaily);
     } catch(e) {
       console.log(e);
     }
@@ -41,14 +43,8 @@ export default class AlphaVantageStockService extends AbstractStockService {
   private transform(response: AlphaVantageResponse): SymbolData {
     const interval = response['Meta Data']['4. Interval'] || 'Daily';
     const intervals = this.createIntervals(response[`Time Series (${interval})`]);
-    const highs = intervals.map(({ high }) => high);
-    const lows = intervals.map(({ low }) => low);
 
     return {
-      range: {
-        high: Math.max(...highs),
-        low: Math.min(...lows)
-      },
       intervals,
       movingAverage: getMovingAverage(intervals),
       peaks: getPeaks(intervals),
@@ -60,12 +56,15 @@ export default class AlphaVantageStockService extends AbstractStockService {
   private createIntervals(shares: AlphaVantageShareDataSet): Interval[] {
     return Object.keys(shares).map(key => {
       const shareData = shares[key];
+      const adjustedClose = parseFloat(shareData['5. adjusted close'] || shareData['4. close']);
+      const adjustmentFactor = adjustedClose / parseFloat(shareData['4. close']);
 
       return {
-        open: parseFloat(shareData['1. open']),
-        high: parseFloat(shareData['2. high']),
-        low: parseFloat(shareData['3. low']),
-        close: parseFloat(shareData['4. close'])
+        open: parseFloat(shareData['1. open']) * adjustmentFactor,
+        high: parseFloat(shareData['2. high']) * adjustmentFactor,
+        low: parseFloat(shareData['3. low']) * adjustmentFactor,
+        close: parseFloat(shareData['4. close']) * adjustmentFactor,
+        volume: parseFloat(shareData['5. volume'] || shareData['6. volume'])
       };
     }).reverse();
   }
