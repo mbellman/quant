@@ -28,6 +28,20 @@ function getRange(intervals: Interval[]): Range {
   };
 }
 
+function padRight(string: string, pad: string, limit: number): string {
+  while (string.length < limit) {
+    string += pad;
+  }
+
+  return string;
+}
+
+function getDollarValue(number: number): string {
+  let [ dollars, cents = '' ] = `${Math.round(number * 100) / 100}`.split('.');
+
+  return `$${dollars}.${padRight(cents, '0', 2)}`;
+}
+
 function line(start: Point, end: Point): void {
   ctx.beginPath();
   ctx.moveTo(start.x, start.y);
@@ -75,6 +89,16 @@ function drawCandlestick({ open, close, high, low }: Interval, bounds: Rect, sho
   );
 }
 
+function drawGridLines({ intervals }: SymbolData, scale: number = 1.0): void {
+  const offset = canvas.height * (1 - scale) * 0.5;
+
+  ctx.strokeStyle = '#237';
+
+  line({ x: 0, y: offset }, { x: canvas.width, y: offset });
+  line({ x: 0, y: canvas.height / 2 }, { x: canvas.width, y: canvas.height / 2 });
+  line({ x: 0, y: canvas.height - offset }, { x: canvas.width, y: canvas.height - offset });
+}
+
 function drawIntervals({ intervals }: SymbolData, scale: number = 1.0): void {
   const { high, low } = getRange(intervals);
   const dx = canvas.width / intervals.length;
@@ -108,25 +132,30 @@ function drawIntervals({ intervals }: SymbolData, scale: number = 1.0): void {
   ctx.restore();
 }
 
-function drawMovingAverage({ intervals, movingAverage }: SymbolData, scale: number = 1.0): void {
+function drawMovingAverages({ intervals, movingAverage50, movingAverage100 }: SymbolData, scale: number = 1.0): void {
   const { high, low } = getRange(intervals);
-  const dx = canvas.width / movingAverage.length;
+  const dx = canvas.width / intervals.length;
   const dy = canvas.height / (high - low) * scale;
   const offset = canvas.height * (1 - scale) * 0.5;
 
-  ctx.strokeStyle = '#0ff';
-  ctx.lineWidth = 2;
-
-  for (let i = 0; i < movingAverage.length; i++) {
-    const previousIndex = i > 0 ? i - 1 : i;
-    const previousAverage = movingAverage[previousIndex];
-    const average = movingAverage[i];
-
-    line(
-      { x: previousIndex * dx + dx / 2, y: (high - previousAverage) * dy + offset },
-      { x: i * dx + dx / 2, y: (high - average) * dy + offset }
-    );
+  function drawMovingAverage(movingAverage: number[], color: string): void {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+  
+    for (let i = 0; i < movingAverage.length; i++) {
+      const previousIndex = i > 0 ? i - 1 : i;
+      const previousAverage = movingAverage[previousIndex];
+      const average = movingAverage[i];
+  
+      line(
+        { x: previousIndex * dx + dx / 2, y: (high - previousAverage) * dy + offset },
+        { x: i * dx + dx / 2, y: (high - average) * dy + offset }
+      );
+    }
   }
+
+  drawMovingAverage(movingAverage50, '#0ff');
+  drawMovingAverage(movingAverage100, '#ff0');
 }
 
 function drawReversals({ intervals, peaks, dips }: SymbolData, scale: number = 1.0, leftCutoff: number = 0): void {
@@ -148,8 +177,8 @@ function drawReversals({ intervals, peaks, dips }: SymbolData, scale: number = 1
       y: (high - interval.high) * dy + offset
     };
 
-    circle(point, 8, '#000');
-    circle(point, 5, '#0f0');
+    circle(point, 10, '#000');
+    circle(point, 7, '#0f0');
   }
 
   for (const dip of dips) {
@@ -165,8 +194,8 @@ function drawReversals({ intervals, peaks, dips }: SymbolData, scale: number = 1
       y: (high - interval.low) * dy + offset
     };
 
-    circle(point, 8, '#000');
-    circle(point, 5, '#f00');
+    circle(point, 10, '#000');
+    circle(point, 7, '#f00');
   }
 }
 
@@ -200,6 +229,18 @@ function drawVolume(intervals: Interval[]): void {
   ctx.restore();
 }
 
+function drawDollarValues({ intervals }: SymbolData, scale: number): void {
+  const { high, low } = getRange(intervals);
+  const offset = canvas.height * (1 - scale) * 0.5;
+
+  ctx.font = '20px Arial';
+  ctx.fillStyle = '#fff';
+
+  ctx.fillText(getDollarValue(high), 10, offset + 6);
+  ctx.fillText(getDollarValue((high + low) / 2), 10, canvas.height / 2 + 6);
+  ctx.fillText(getDollarValue(low), 10, canvas.height - offset + 6);
+}
+
 export function plotData(data: SymbolData, leftCutoff: number = 0, rightCutoff: number = 0): void {
   ctx.fillStyle = '#015';
 
@@ -217,11 +258,14 @@ export function plotData(data: SymbolData, leftCutoff: number = 0, rightCutoff: 
   data = {
     ...data,
     intervals: data.intervals.slice(start, end),
-    movingAverage: data.movingAverage.slice(start, end)
+    movingAverage50: data.movingAverage50.slice(start, end),
+    movingAverage100: data.movingAverage100.slice(start, end)
   };
 
-  drawIntervals(data, scale);
-  drawMovingAverage(data, scale);
-  drawReversals(data, scale, leftCutoff);
+  drawGridLines(data, scale);
   drawVolume(data.intervals);
+  drawIntervals(data, scale);
+  drawMovingAverages(data, scale);
+  drawReversals(data, scale, leftCutoff);
+  drawDollarValues(data, scale);
 }

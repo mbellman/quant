@@ -70,7 +70,7 @@ async function main() {
   function onMouseDown(e: MouseEvent): void {
     let { clientX: lastX } = e;
 
-    function onMouseMove(e) {
+    function onMouseMove(e: MouseEvent): void {
       const { clientX: currentX } = e;
       const deltaX = currentX - lastX;
 

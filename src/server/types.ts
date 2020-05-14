@@ -8,7 +8,8 @@ export interface Interval {
 
 export interface SymbolData {
   intervals: Interval[];
-  movingAverage: number[];
+  movingAverage50: number[];
+  movingAverage100: number[];
   peaks: number[];
   dips: number[];
   prediction: number[];

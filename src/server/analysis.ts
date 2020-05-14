@@ -11,7 +11,7 @@ function isReversal(intervals: Interval[], index: number, predicate: ReversalPre
 
   return [
     intervals[index - 1],
-    ...intervals.slice(index + 1, index + 30)
+    ...intervals.slice(index + 1, index + 25)
   ].filter(Boolean).every(comparison => predicate(interval, comparison));
 }
 
@@ -29,11 +29,11 @@ function getReversals(intervals: Interval[], predicate: ReversalPredicate): numb
   return reversals;
 }
 
-export function getMovingAverage(intervals: Interval[]): number[] {
+export function getMovingAverage(intervals: Interval[], limit: number): number[] {
   const intervalAverages = intervals.map(({ high, low }) => (high + low) / 2);
 
   return intervalAverages.reduce((movingAverage, _, index) => {
-    const start = Math.max(index - 50, 0);
+    const start = Math.max(index - limit, 0);
     const end = index + 1;
     const runningAverage = getAverage(intervalAverages.slice(start, end));
 

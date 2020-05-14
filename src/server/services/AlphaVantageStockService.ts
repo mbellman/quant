@@ -46,7 +46,8 @@ export default class AlphaVantageStockService extends AbstractStockService {
 
     return {
       intervals,
-      movingAverage: getMovingAverage(intervals),
+      movingAverage50: getMovingAverage(intervals, 50),
+      movingAverage100: getMovingAverage(intervals, 100),
       peaks: getPeaks(intervals),
       dips: getDips(intervals),
       prediction: []
