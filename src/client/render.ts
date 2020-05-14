@@ -1,4 +1,4 @@
-import { SymbolData, Interval } from '../server/types';
+import { SymbolData, Interval, IntervalType, IntervalPredicate } from '../server/types';
 
 interface Point {
   x: number;
@@ -40,6 +40,14 @@ function getDollarValue(number: number): string {
   let [ dollars, cents = '' ] = `${Math.round(number * 100) / 100}`.split('.');
 
   return `$${dollars}.${padRight(cents, '0', 2)}`;
+}
+
+function isLaterYear(a: Date, b: Date): boolean {
+  return a.getFullYear() > b.getFullYear();
+}
+
+function isLaterHour(a: Date, b: Date): boolean {
+  return a.getUTCHours() > b.getUTCHours();
 }
 
 function line(start: Point, end: Point): void {
@@ -89,14 +97,28 @@ function drawCandlestick({ open, close, high, low }: Interval, bounds: Rect, sho
   );
 }
 
-function drawGridLines({ intervals }: SymbolData, scale: number = 1.0): void {
+function drawGridLines({ intervals, type }: SymbolData, scale: number = 1.0): void {
+  const dx = canvas.width / intervals.length;
   const offset = canvas.height * (1 - scale) * 0.5;
+
+  const dividerPredicate: IntervalPredicate = type === IntervalType.INTRADAY
+    ? (previousInterval, nextInterval) => isLaterHour(new Date(nextInterval.time), new Date(previousInterval.time))
+    : (previousInterval, nextInterval) => isLaterYear(new Date(nextInterval.time), new Date(previousInterval.time));
 
   ctx.strokeStyle = '#237';
 
   line({ x: 0, y: offset }, { x: canvas.width, y: offset });
   line({ x: 0, y: canvas.height / 2 }, { x: canvas.width, y: canvas.height / 2 });
   line({ x: 0, y: canvas.height - offset }, { x: canvas.width, y: canvas.height - offset });
+
+  for (let i = 1; i < intervals.length; i++) {
+    const previousInterval = intervals[i - 1];
+    const interval = intervals[i];
+
+    if (dividerPredicate(previousInterval, interval)) {
+      line({ x: i * dx, y: 0 }, { x: i * dx, y: canvas.height });
+    }
+  }
 }
 
 function drawIntervals({ intervals }: SymbolData, scale: number = 1.0): void {
@@ -141,17 +163,19 @@ function drawMovingAverages({ intervals, movingAverage50, movingAverage100 }: Sy
   function drawMovingAverage(movingAverage: number[], color: string): void {
     ctx.strokeStyle = color;
     ctx.lineWidth = 2;
+
+    ctx.beginPath();
   
     for (let i = 0; i < movingAverage.length; i++) {
       const previousIndex = i > 0 ? i - 1 : i;
       const previousAverage = movingAverage[previousIndex];
       const average = movingAverage[i];
-  
-      line(
-        { x: previousIndex * dx + dx / 2, y: (high - previousAverage) * dy + offset },
-        { x: i * dx + dx / 2, y: (high - average) * dy + offset }
-      );
+
+      ctx.moveTo(previousIndex * dx + dx / 2, (high - previousAverage) * dy + offset);
+      ctx.lineTo(i * dx + dx / 2, (high - average) * dy + offset);
     }
+
+    ctx.stroke();
   }
 
   drawMovingAverage(movingAverage50, '#0ff');
@@ -229,19 +253,31 @@ function drawVolume(intervals: Interval[]): void {
   ctx.restore();
 }
 
-function drawDollarValues({ intervals }: SymbolData, scale: number): void {
+function drawDollarValues({ intervals }: SymbolData, scale: number, mouseY): void {
   const { high, low } = getRange(intervals);
   const offset = canvas.height * (1 - scale) * 0.5;
+  const median = (high + low) / 2;
+  const properHigh = median + (high - median) / scale;
+  const properLow = median - (median - low) / scale;
+  const mouseYRatio = (mouseY - canvas.getBoundingClientRect().top) / canvas.height;
+  const mouseYPrice = Math.max(properLow + (properHigh - properLow) * (1 - mouseYRatio), 0);
 
-  ctx.font = '20px Arial';
+  ctx.font = '18px Arial';
   ctx.fillStyle = '#fff';
+  ctx.strokeStyle = '#126';
 
   ctx.fillText(getDollarValue(high), 10, offset + 6);
-  ctx.fillText(getDollarValue((high + low) / 2), 10, canvas.height / 2 + 6);
+  ctx.fillText(getDollarValue(median), 10, canvas.height / 2 + 6);
   ctx.fillText(getDollarValue(low), 10, canvas.height - offset + 6);
+
+  line({ x: 0, y: mouseYRatio * canvas.height }, { x: canvas.width, y: mouseYRatio * canvas.height });
+  
+  ctx.font = '18px Arial';
+
+  ctx.fillText(getDollarValue(mouseYPrice), 10, mouseYRatio * canvas.height + 6);
 }
 
-export function plotData(data: SymbolData, leftCutoff: number = 0, rightCutoff: number = 0): void {
+export function plotData(data: SymbolData, leftCutoff: number = 0, rightCutoff: number = 0, mouseY: number = 0): void {
   ctx.fillStyle = '#015';
 
   rectangle({
@@ -267,5 +303,5 @@ export function plotData(data: SymbolData, leftCutoff: number = 0, rightCutoff: 
   drawIntervals(data, scale);
   drawMovingAverages(data, scale);
   drawReversals(data, scale, leftCutoff);
-  drawDollarValues(data, scale);
+  drawDollarValues(data, scale, mouseY);
 }

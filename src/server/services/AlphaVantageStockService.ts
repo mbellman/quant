@@ -1,5 +1,5 @@
 import AbstractStockService from './AbstractStockService';
-import { Interval, SymbolData } from '../types';
+import { IntervalType, Interval, SymbolData } from '../types';
 import msft from '../samples/msft.json';
 import msftDaily from '../samples/msft-daily.json';
 import aapl from '../samples/aapl.json';
@@ -34,7 +34,7 @@ type AlphaVantageResponse = {
 export default class AlphaVantageStockService extends AbstractStockService {
   public async fetch(symbol: string): Promise<SymbolData> {
     try {
-      return this.transform(amdDaily);
+      return this.transform(msftDaily);
     } catch(e) {
       console.log(e);
     }
@@ -43,8 +43,11 @@ export default class AlphaVantageStockService extends AbstractStockService {
   private transform(response: AlphaVantageResponse): SymbolData {
     const interval = response['Meta Data']['4. Interval'] || 'Daily';
     const intervals = this.createIntervals(response[`Time Series (${interval})`]);
+    const isIntraday = response['Meta Data']['1. Information'].includes('Intraday');
 
     return {
+      symbol: response['Meta Data']['2. Symbol'],
+      type: isIntraday ? IntervalType.INTRADAY : IntervalType.DAILY,
       intervals,
       movingAverage50: getMovingAverage(intervals, 50),
       movingAverage100: getMovingAverage(intervals, 100),
@@ -61,6 +64,7 @@ export default class AlphaVantageStockService extends AbstractStockService {
       const adjustmentFactor = adjustedClose / parseFloat(shareData['4. close']);
 
       return {
+        time: key,
         open: parseFloat(shareData['1. open']) * adjustmentFactor,
         high: parseFloat(shareData['2. high']) * adjustmentFactor,
         low: parseFloat(shareData['3. low']) * adjustmentFactor,

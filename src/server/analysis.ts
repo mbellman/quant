@@ -1,12 +1,10 @@
-import { Interval } from './types';
-
-type ReversalPredicate = (interval: Interval, comparison: Interval) => boolean;
+import { Interval, IntervalPredicate } from './types';
 
 function getAverage(numbers: number[]) {
   return numbers.reduce((total, n) => total + n, 0) / numbers.length;
 }
 
-function isReversal(intervals: Interval[], index: number, predicate: ReversalPredicate): boolean {
+function isReversal(intervals: Interval[], index: number, predicate: IntervalPredicate): boolean {
   const interval = intervals[index];
 
   return [
@@ -15,7 +13,7 @@ function isReversal(intervals: Interval[], index: number, predicate: ReversalPre
   ].filter(Boolean).every(comparison => predicate(interval, comparison));
 }
 
-function getReversals(intervals: Interval[], predicate: ReversalPredicate): number[] {
+function getReversals(intervals: Interval[], predicate: IntervalPredicate): number[] {
   const reversals: number[] = [];
 
   for (let i = 0; i < intervals.length; i++) {
@@ -44,9 +42,9 @@ export function getMovingAverage(intervals: Interval[], limit: number): number[]
 }
 
 export function getDips(intervals: Interval[]): number[] {
-  return getReversals(intervals, (interval, comparison) => interval.low < comparison.low);
+  return getReversals(intervals, (first, next) => first.low < next.low);
 }
 
 export function getPeaks(intervals: Interval[]): number[] {
-  return getReversals(intervals, (interval, comparison) => interval.high > comparison.high);
+  return getReversals(intervals, (first, next) => first.high > next.high);
 }

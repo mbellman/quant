@@ -1,4 +1,10 @@
+export const enum IntervalType {
+  INTRADAY,
+  DAILY
+}
+
 export interface Interval {
+  time: string;
   open: number;
   high: number;
   low: number;
@@ -7,6 +13,8 @@ export interface Interval {
 }
 
 export interface SymbolData {
+  symbol: string;
+  type: IntervalType;
   intervals: Interval[];
   movingAverage50: number[];
   movingAverage100: number[];
@@ -14,3 +22,5 @@ export interface SymbolData {
   dips: number[];
   prediction: number[];
 }
+
+export type IntervalPredicate = (a: Interval, b: Interval) => boolean;

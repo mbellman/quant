@@ -8,6 +8,7 @@ async function main() {
 
   const state = {
     mouseX: 0,
+    mouseY: 0,
     leftCutoff: 0,
     rightCutoff: 0,
     wheelMomentum: 0,
@@ -63,7 +64,7 @@ async function main() {
       return;
     }
 
-    plotData(data, state.leftCutoff, state.rightCutoff);
+    plotData(data, state.leftCutoff, state.rightCutoff, state.mouseY);
     requestAnimationFrame(refreshChart);
   }
 
@@ -95,7 +96,7 @@ async function main() {
     });
   }
 
-  document.body.addEventListener('wheel', e => {
+  document.addEventListener('wheel', e => {
     const shouldRefreshChart = (
       state.wheelMomentum === 0 &&
       state.dragMomentum === 0
@@ -106,6 +107,16 @@ async function main() {
 
     if (shouldRefreshChart) {
       refreshChart();
+    }
+  });
+
+  document.addEventListener('mousemove', e => {
+    const isRefreshing = state.wheelMomentum !== 0 || state.dragMomentum !== 0;
+
+    state.mouseY = e.clientY;
+
+    if (!isRefreshing) {
+      plotData(data, state.leftCutoff, state.rightCutoff, state.mouseY);
     }
   });
 
