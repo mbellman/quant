@@ -63,12 +63,27 @@ function rectangle({ x, y, width, height }: Rect): void {
   ctx.fill();
 }
 
-function circle(point: Point, radius: number, color: string): void {
+function drawBatched<T>(elements: T[], color: string, handler: (element: T) => void): void {
   ctx.fillStyle = color;
 
   ctx.beginPath();
-  ctx.arc(point.x, point.y, radius, 0, Math.PI * 2);
+
+  for (const element of elements) {
+    handler(element);
+  }
+
   ctx.fill();
+}
+
+function drawRectanglesBatched(rects: Rect[], color: string): void {
+  drawBatched(rects, color, ({ x, y, width, height }) => ctx.rect(x, y, width, height));
+}
+
+function drawCirclesBatched(points: Point[], radius: number, color: string): void {
+  drawBatched(points, color, ({ x, y }) => {
+    ctx.moveTo(x, y);
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+  });
 }
 
 function drawCandlestick({ open, close, high, low }: Interval, bounds: Rect, shouldShowCandle: boolean): void {
@@ -97,9 +112,10 @@ function drawCandlestick({ open, close, high, low }: Interval, bounds: Rect, sho
   );
 }
 
-function drawGridLines({ intervals, type }: SymbolData, scale: number = 1.0): void {
+function drawGridLines({ intervals, type }: SymbolData, scale: number = 1.0, mouseY: number): void {
   const dx = canvas.width / intervals.length;
   const offset = canvas.height * (1 - scale) * 0.5;
+  const canvasMouseY = mouseY - canvas.getBoundingClientRect().top;
 
   const dividerPredicate: IntervalPredicate = type === IntervalType.INTRADAY
     ? (previousInterval, nextInterval) => isLaterHour(new Date(nextInterval.time), new Date(previousInterval.time))
@@ -110,6 +126,7 @@ function drawGridLines({ intervals, type }: SymbolData, scale: number = 1.0): vo
   line({ x: 0, y: offset }, { x: canvas.width, y: offset });
   line({ x: 0, y: canvas.height / 2 }, { x: canvas.width, y: canvas.height / 2 });
   line({ x: 0, y: canvas.height - offset }, { x: canvas.width, y: canvas.height - offset });
+  line({ x: 0, y: canvasMouseY }, { x: canvas.width, y: canvasMouseY });
 
   for (let i = 1; i < intervals.length; i++) {
     const previousInterval = intervals[i - 1];
@@ -121,12 +138,13 @@ function drawGridLines({ intervals, type }: SymbolData, scale: number = 1.0): vo
   }
 }
 
-function drawIntervals({ intervals }: SymbolData, scale: number = 1.0): void {
+function drawIntervals({ intervals }: SymbolData, scale: number = 1.0, mouseY: number): void {
   const { high, low } = getRange(intervals);
   const dx = canvas.width / intervals.length;
   const dy = canvas.height / (high - low) * scale;
   const offset = canvas.height * (1 - scale) * 0.5;
   const step = Math.max(intervals.length / canvas.width, 1);
+  const canvasMouseY = mouseY - canvas.getBoundingClientRect().top;
 
   if (step > 2) {
     return;
@@ -149,6 +167,12 @@ function drawIntervals({ intervals }: SymbolData, scale: number = 1.0): void {
     };
 
     drawCandlestick(interval, bounds, /* shouldShowCandle */ step === 1);
+
+    if (y < canvasMouseY && y + height > canvasMouseY) {
+      ctx.strokeStyle = '#fff';
+
+      line({ x: bounds.x, y: canvasMouseY }, { x: bounds.x + bounds.width, y: canvasMouseY });
+    }
   }
 
   ctx.restore();
@@ -188,6 +212,9 @@ function drawReversals({ intervals, peaks, dips }: SymbolData, scale: number = 1
   const dy = canvas.height / (high - low) * scale;
   const offset = canvas.height * (1 - scale) * 0.5;
 
+  const peakPoints: Point[] = [];
+  const dipPoints: Point[] = [];
+
   for (const peak of peaks) {
     const index = peak - leftCutoff;
     const interval = intervals[index];
@@ -196,13 +223,10 @@ function drawReversals({ intervals, peaks, dips }: SymbolData, scale: number = 1
       continue;
     }
 
-    const point: Point = {
+    peakPoints.push({
       x: index * dx + dx / 2,
       y: (high - interval.high) * dy + offset
-    };
-
-    circle(point, 10, '#000');
-    circle(point, 7, '#0f0');
+    });
   }
 
   for (const dip of dips) {
@@ -213,14 +237,17 @@ function drawReversals({ intervals, peaks, dips }: SymbolData, scale: number = 1
       continue;
     }
 
-    const point: Point = {
+    dipPoints.push({
       x: index * dx + dx / 2,
       y: (high - interval.low) * dy + offset
-    };
-
-    circle(point, 10, '#000');
-    circle(point, 7, '#f00');
+    });
   }
+
+  drawCirclesBatched(peakPoints, 10, '#000');
+  drawCirclesBatched(peakPoints, 7, '#0f0');
+
+  drawCirclesBatched(dipPoints, 10, '#000');
+  drawCirclesBatched(dipPoints, 7, '#f00');
 }
 
 function drawVolume(intervals: Interval[]): void {
@@ -236,13 +263,15 @@ function drawVolume(intervals: Interval[]): void {
 
   ctx.globalAlpha = 1.5 - step;
 
+  const greenRects: Rect[] = [];
+  const redRects: Rect[] = [];
+
   for (let i = 0; i < intervals.length; i++) {
     const { volume, open, close } = intervals[i];
     const height = volume / highestVolume * 100;
+    const target = close > open ? greenRects : redRects;
 
-    ctx.fillStyle = close > open ? '#0f0' : '#f00';
-
-    rectangle({
+    target.push({
       x: dx * i,
       y: canvas.height - height,
       width: dx,
@@ -250,10 +279,13 @@ function drawVolume(intervals: Interval[]): void {
     });
   }
 
+  drawRectanglesBatched(redRects, '#f00');
+  drawRectanglesBatched(greenRects, '#0f0');
+
   ctx.restore();
 }
 
-function drawDollarValues({ intervals }: SymbolData, scale: number, mouseY): void {
+function drawDollarValues({ intervals }: SymbolData, scale: number, mouseY: number): void {
   const { high, low } = getRange(intervals);
   const offset = canvas.height * (1 - scale) * 0.5;
   const median = (high + low) / 2;
@@ -269,11 +301,6 @@ function drawDollarValues({ intervals }: SymbolData, scale: number, mouseY): voi
   ctx.fillText(getDollarValue(high), 10, offset + 6);
   ctx.fillText(getDollarValue(median), 10, canvas.height / 2 + 6);
   ctx.fillText(getDollarValue(low), 10, canvas.height - offset + 6);
-
-  line({ x: 0, y: mouseYRatio * canvas.height }, { x: canvas.width, y: mouseYRatio * canvas.height });
-  
-  ctx.font = '18px Arial';
-
   ctx.fillText(getDollarValue(mouseYPrice), 10, mouseYRatio * canvas.height + 6);
 }
 
@@ -291,17 +318,17 @@ export function plotData(data: SymbolData, leftCutoff: number = 0, rightCutoff: 
   const start = leftCutoff;
   const end = data.intervals.length - rightCutoff;
 
-  data = {
+  const visibleData = {
     ...data,
     intervals: data.intervals.slice(start, end),
     movingAverage50: data.movingAverage50.slice(start, end),
     movingAverage100: data.movingAverage100.slice(start, end)
   };
 
-  drawGridLines(data, scale);
-  drawVolume(data.intervals);
-  drawIntervals(data, scale);
-  drawMovingAverages(data, scale);
-  drawReversals(data, scale, leftCutoff);
-  drawDollarValues(data, scale, mouseY);
+  drawGridLines(visibleData, scale, mouseY);
+  drawVolume(visibleData.intervals);
+  drawIntervals(visibleData, scale, mouseY);
+  drawMovingAverages(visibleData, scale);
+  drawReversals(visibleData, scale, leftCutoff);
+  drawDollarValues(visibleData, scale, mouseY);
 }
