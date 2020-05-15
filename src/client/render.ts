@@ -46,8 +46,12 @@ function isLaterYear(a: Date, b: Date): boolean {
   return a.getFullYear() > b.getFullYear();
 }
 
-function isLaterHour(a: Date, b: Date): boolean {
-  return a.getUTCHours() > b.getUTCHours();
+function isLaterDay(a: Date, b: Date): boolean {
+  return (
+    a.getDate() > b.getDate() ||
+    a.getMonth() > b.getMonth() ||
+    a.getFullYear() > b.getFullYear()
+  );
 }
 
 function line(start: Point, end: Point): void {
@@ -118,8 +122,12 @@ function drawGridLines({ intervals, type }: SymbolData, scale: number = 1.0, mou
   const canvasMouseY = mouseY - canvas.getBoundingClientRect().top;
 
   const dividerPredicate: IntervalPredicate = type === IntervalType.INTRADAY
-    ? (previousInterval, nextInterval) => isLaterHour(new Date(nextInterval.time), new Date(previousInterval.time))
+    ? (previousInterval, nextInterval) => isLaterDay(new Date(nextInterval.time), new Date(previousInterval.time))
     : (previousInterval, nextInterval) => isLaterYear(new Date(nextInterval.time), new Date(previousInterval.time));
+
+  const getDividerLabel = type === IntervalType.INTRADAY
+    ? ({ time }: Interval) => `${new Date(time).getMonth() + 1}/${new Date(time).getDate()}`
+    : ({ time }: Interval) => `${new Date(time).getFullYear()}`;
 
   ctx.strokeStyle = '#237';
 
@@ -134,6 +142,11 @@ function drawGridLines({ intervals, type }: SymbolData, scale: number = 1.0, mou
 
     if (dividerPredicate(previousInterval, interval)) {
       line({ x: i * dx, y: 0 }, { x: i * dx, y: canvas.height });
+
+      ctx.font = '14px Arial';
+      ctx.fillStyle = '#fff';
+
+      ctx.fillText(getDividerLabel(interval), i * dx, 20);
     }
   }
 }
