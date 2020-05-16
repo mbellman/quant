@@ -2,18 +2,38 @@
   "Meta Data": {
     "1. Information": "Daily Time Series with Splits and Dividend Events",
     "2. Symbol": "AMD",
-    "3. Last Refreshed": "2020-05-13",
+    "3. Last Refreshed": "2020-05-15",
     "4. Output Size": "Full size",
     "5. Time Zone": "US/Eastern"
   },
   "Time Series (Daily)": {
+    "2020-05-15": {
+      "1. open": "53.3200",
+      "2. high": "54.4350",
+      "3. low": "52.8600",
+      "4. close": "54.2000",
+      "5. adjusted close": "54.2000",
+      "6. volume": "66344232",
+      "7. dividend amount": "0.0000",
+      "8. split coefficient": "1.0000"
+    },
+    "2020-05-14": {
+      "1. open": "52.1000",
+      "2. high": "54.5400",
+      "3. low": "51.6100",
+      "4. close": "54.5100",
+      "5. adjusted close": "54.5100",
+      "6. volume": "73813999",
+      "7. dividend amount": "0.0000",
+      "8. split coefficient": "1.0000"
+    },
     "2020-05-13": {
       "1. open": "54.0400",
       "2. high": "55.2200",
       "3. low": "51.2950",
       "4. close": "52.1800",
       "5. adjusted close": "52.1800",
-      "6. volume": "76323364",
+      "6. volume": "76824714",
       "7. dividend amount": "0.0000",
       "8. split coefficient": "1.0000"
     },
@@ -50314,16 +50334,6 @@
       "4. close": "85.5000",
       "5. adjusted close": "42.7500",
       "6. volume": "2802600",
-      "7. dividend amount": "0.0000",
-      "8. split coefficient": "1.0000"
-    },
-    "2000-05-12": {
-      "1. open": "87.0600",
-      "2. high": "89.7500",
-      "3. low": "84.5000",
-      "4. close": "85.6900",
-      "5. adjusted close": "42.8450",
-      "6. volume": "3729700",
       "7. dividend amount": "0.0000",
       "8. split coefficient": "1.0000"
     }

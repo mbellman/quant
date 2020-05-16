@@ -7,6 +7,7 @@ import aaplDaily from '../samples/aapl-daily.json';
 import amd from '../samples/amd.json';
 import amdDaily from '../samples/amd-daily.json';
 import { getMovingAverage, getDips, getPeaks } from '../analysis';
+import { predictReversals } from '../prediction';
 
 type AlphaVantageShareData = {
   '1. open': string;
@@ -34,7 +35,7 @@ type AlphaVantageResponse = {
 export default class AlphaVantageStockService extends AbstractStockService {
   public async fetch(symbol: string): Promise<SymbolData> {
     try {
-      return this.transform(msftDaily);
+      return this.transform(amd);
     } catch(e) {
       console.log(e);
     }
@@ -45,7 +46,7 @@ export default class AlphaVantageStockService extends AbstractStockService {
     const intervals = this.createIntervals(response[`Time Series (${interval})`]);
     const isIntraday = response['Meta Data']['1. Information'].includes('Intraday');
 
-    return {
+    const data: SymbolData = {
       symbol: response['Meta Data']['2. Symbol'],
       type: isIntraday ? IntervalType.INTRADAY : IntervalType.DAILY,
       intervals,
@@ -53,8 +54,12 @@ export default class AlphaVantageStockService extends AbstractStockService {
       movingAverage100: getMovingAverage(intervals, 100),
       peaks: getPeaks(intervals),
       dips: getDips(intervals),
-      prediction: []
+      predictedReversals: []
     };
+
+    data.predictedReversals = predictReversals(data);
+
+    return data;
   }
 
   private createIntervals(shares: AlphaVantageShareDataSet): Interval[] {

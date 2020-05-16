@@ -20,7 +20,7 @@ export interface SymbolData {
   movingAverage100: number[];
   peaks: number[];
   dips: number[];
-  prediction: number[];
+  predictedReversals: number[];
 }
 
 export type IntervalPredicate = (a: Interval, b: Interval) => boolean;

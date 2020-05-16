@@ -2,18 +2,38 @@
   "Meta Data": {
     "1. Information": "Daily Time Series with Splits and Dividend Events",
     "2. Symbol": "MSFT",
-    "3. Last Refreshed": "2020-05-13",
+    "3. Last Refreshed": "2020-05-15",
     "4. Output Size": "Full size",
     "5. Time Zone": "US/Eastern"
   },
   "Time Series (Daily)": {
+    "2020-05-15": {
+      "1. open": "179.0600",
+      "2. high": "187.0600",
+      "3. low": "177.0000",
+      "4. close": "183.1600",
+      "5. adjusted close": "183.1600",
+      "6. volume": "46267327",
+      "7. dividend amount": "0.0000",
+      "8. split coefficient": "1.0000"
+    },
+    "2020-05-14": {
+      "1. open": "177.5400",
+      "2. high": "180.6900",
+      "3. low": "175.6800",
+      "4. close": "180.5300",
+      "5. adjusted close": "180.5300",
+      "6. volume": "41873911",
+      "7. dividend amount": "0.0000",
+      "8. split coefficient": "1.0000"
+    },
     "2020-05-13": {
       "1. open": "182.5500",
       "2. high": "184.0500",
       "3. low": "176.5400",
       "4. close": "179.7500",
       "5. adjusted close": "179.7500",
-      "6. volume": "44476848",
+      "6. volume": "44711488",
       "7. dividend amount": "0.0000",
       "8. split coefficient": "1.0000"
     },
@@ -50314,16 +50334,6 @@
       "4. close": "69.3700",
       "5. adjusted close": "22.3027",
       "6. volume": "16949800",
-      "7. dividend amount": "0.0000",
-      "8. split coefficient": "1.0000"
-    },
-    "2000-05-12": {
-      "1. open": "68.4400",
-      "2. high": "69.7500",
-      "3. low": "68.2500",
-      "4. close": "68.8100",
-      "5. adjusted close": "22.1226",
-      "6. volume": "18943000",
       "7. dividend amount": "0.0000",
       "8. split coefficient": "1.0000"
     }

@@ -7,16 +7,23 @@ function getAverage(numbers: number[]) {
 function isReversal(intervals: Interval[], index: number, predicate: IntervalPredicate): boolean {
   const interval = intervals[index];
 
-  return [
-    intervals[index - 1],
-    ...intervals.slice(index + 1, index + 25)
+  const isImmediateReversal = [
+    ...intervals.slice(index - 5, index - 1),
+    ...intervals.slice(index + 1, index + 5)
   ].filter(Boolean).every(comparison => predicate(interval, comparison));
+
+  const isLocalReversal = [
+    ...intervals.slice(index - 25, index - 1),
+    ...intervals.slice(index + 1, index + 25)
+  ].filter(Boolean).filter(comparison => predicate(interval, comparison)).length > 45;
+
+  return isImmediateReversal && isLocalReversal;
 }
 
 function getReversals(intervals: Interval[], predicate: IntervalPredicate): number[] {
   const reversals: number[] = [];
 
-  for (let i = 0; i < intervals.length; i++) {
+  for (let i = 1; i < intervals.length; i++) {
     if (isReversal(intervals, i, predicate)) {
       reversals.push(i);
 
