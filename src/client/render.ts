@@ -130,6 +130,7 @@ function drawGridLines({ intervals, type }: SymbolData, scale: number = 1.0, mou
     : ({ time }: Interval) => `${new Date(time).getFullYear()}`;
 
   ctx.strokeStyle = '#237';
+  ctx.lineWidth = 1;
 
   line({ x: 0, y: offset }, { x: canvas.width, y: offset });
   line({ x: 0, y: canvas.height / 2 }, { x: canvas.width, y: canvas.height / 2 });
@@ -263,15 +264,18 @@ function drawReversals({ intervals, peaks, dips }: SymbolData, scale: number = 1
   drawCirclesBatched(dipPoints, 7, '#f00');
 }
 
-function drawPredictions({ intervals, predictedReversals, movingAverage50, movingAverage100 }: SymbolData, scale: number = 1.0, leftCutoff: number = 0): void {
+function drawPredictions({ intervals, predictedDips, predictedPeaks }: SymbolData, scale: number = 1.0, leftCutoff: number = 0): void {
   const { high, low } = getRange(intervals);
   const dx = canvas.width / intervals.length;
   const dy = canvas.height / (high - low) * scale;
   const offset = canvas.height * (1 - scale) * 0.5;
-  const reversalPoints: Point[] = [];
+  const peakPoints: Point[] = [];
+  const dipPoints: Point[] = [];
 
-  for (const reversal of predictedReversals) {
-    const index = reversal - leftCutoff;
+  ctx.lineWidth = 3;
+
+  for (const peak of predictedPeaks) {
+    const index = peak - leftCutoff;
     const interval = intervals[index];
 
     if (!interval) {
@@ -280,31 +284,45 @@ function drawPredictions({ intervals, predictedReversals, movingAverage50, movin
 
     const average = (interval.high + interval.low) / 2;
 
-    const isUpwardReversal = (
-      movingAverage50[index] > movingAverage100[index] ||
-      intervals[index - 10]?.low > interval.low
-    );
+    const point: Point = {
+      x: index * dx + dx / 2,
+      y: (high - average) * dy + offset
+    };
+
+    peakPoints.push(point);
+
+    ctx.strokeStyle = '#f00';
+
+    line(point, { x: point.x + 100, y: point.y + 100 });
+  }
+
+  for (const dip of predictedDips) {
+    const index = dip - leftCutoff;
+    const interval = intervals[index];
+
+    if (!interval) {
+      continue;
+    }
+
+    const average = (interval.high + interval.low) / 2;
 
     const point: Point = {
       x: index * dx + dx / 2,
       y: (high - average) * dy + offset
     };
 
-    reversalPoints.push(point);
+    dipPoints.push(point);
 
-    if (isUpwardReversal) {
-      ctx.strokeStyle = '#0f0';
+    ctx.strokeStyle = '#0f0';
 
-      line(point, { x: point.x + 100, y: point.y - 100 });
-    } else {
-      ctx.strokeStyle = '#f00';
-
-      line(point, { x: point.x + 100, y: point.y + 100 });
-    }
+    line(point, { x: point.x + 100, y: point.y - 100 });
   }
 
-  drawCirclesBatched(reversalPoints, 10, '#000');
-  drawCirclesBatched(reversalPoints, 7, '#0ff');
+  drawCirclesBatched(peakPoints, 10, '#000');
+  drawCirclesBatched(peakPoints, 7, '#0ff');
+
+  drawCirclesBatched(dipPoints, 10, '#000');
+  drawCirclesBatched(dipPoints, 7, '#ff0');
 }
 
 function drawVolume(intervals: Interval[]): void {

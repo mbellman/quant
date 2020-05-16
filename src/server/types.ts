@@ -12,7 +12,7 @@ export interface Interval {
   volume: number;
 }
 
-export interface SymbolData {
+export interface BaseSymbolData {
   symbol: string;
   type: IntervalType;
   intervals: Interval[];
@@ -20,7 +20,11 @@ export interface SymbolData {
   movingAverage100: number[];
   peaks: number[];
   dips: number[];
-  predictedReversals: number[];
+}
+
+export interface SymbolData extends BaseSymbolData {
+  predictedPeaks: number[];
+  predictedDips: number[];
 }
 
 export type IntervalPredicate = (a: Interval, b: Interval) => boolean;
