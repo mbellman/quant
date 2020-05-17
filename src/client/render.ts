@@ -192,7 +192,7 @@ function drawIntervals({ intervals }: SymbolData, scale: number = 1.0, mouseY: n
   ctx.restore();
 }
 
-function drawMovingAverages({ intervals, movingAverage50, movingAverage100 }: SymbolData, scale: number = 1.0): void {
+function drawMovingAverages({ intervals, shortMovingAverage, longMovingAverage }: SymbolData, scale: number = 1.0): void {
   const { high, low } = getRange(intervals);
   const dx = canvas.width / intervals.length;
   const dy = canvas.height / (high - low) * scale;
@@ -216,8 +216,8 @@ function drawMovingAverages({ intervals, movingAverage50, movingAverage100 }: Sy
     ctx.stroke();
   }
 
-  drawMovingAverage(movingAverage50, '#0ff');
-  drawMovingAverage(movingAverage100, '#ff0');
+  drawMovingAverage(shortMovingAverage, '#0ff');
+  drawMovingAverage(longMovingAverage, '#ff0');
 }
 
 function drawReversals({ intervals, peaks, dips }: SymbolData, scale: number = 1.0, leftCutoff: number = 0): void {
@@ -396,8 +396,8 @@ export function plotData(data: SymbolData, leftCutoff: number = 0, rightCutoff: 
   const visibleData = {
     ...data,
     intervals: data.intervals.slice(start, end),
-    movingAverage50: data.movingAverage50.slice(start, end),
-    movingAverage100: data.movingAverage100.slice(start, end)
+    shortMovingAverage: data.shortMovingAverage.slice(start, end),
+    longMovingAverage: data.longMovingAverage.slice(start, end)
   };
 
   drawGridLines(visibleData, scale, mouseY);

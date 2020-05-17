@@ -35,7 +35,7 @@ type AlphaVantageResponse = {
 export default class AlphaVantageStockService extends AbstractStockService {
   public async fetch(symbol: string): Promise<SymbolData> {
     try {
-      return this.transform(msft);
+      return this.transform(amd);
     } catch(e) {
       console.log(e);
     }
@@ -50,8 +50,8 @@ export default class AlphaVantageStockService extends AbstractStockService {
       symbol: response['Meta Data']['2. Symbol'],
       type: isIntraday ? IntervalType.INTRADAY : IntervalType.DAILY,
       intervals,
-      movingAverage50: getMovingAverage(intervals, 50),
-      movingAverage100: getMovingAverage(intervals, 100),
+      shortMovingAverage: getMovingAverage(intervals, 40),
+      longMovingAverage: getMovingAverage(intervals, 80),
       peaks: getPeaks(intervals),
       dips: getDips(intervals)
     };

@@ -3,6 +3,16 @@ export const enum IntervalType {
   DAILY
 }
 
+export const enum PriceTrend {
+  UPWARD,
+  UPWARD_SPIKE,
+  UPWARD_REVERSAL,
+  DOWNWARD,
+  DOWNWARD_SPIKE,
+  DOWNWARD_REVERSAL,
+  FLAT
+}
+
 export interface Interval {
   time: string;
   open: number;
@@ -16,8 +26,8 @@ export interface BaseSymbolData {
   symbol: string;
   type: IntervalType;
   intervals: Interval[];
-  movingAverage50: number[];
-  movingAverage100: number[];
+  shortMovingAverage: number[];
+  longMovingAverage: number[];
   peaks: number[];
   dips: number[];
 }
