@@ -1,11 +1,6 @@
+import axios from 'axios';
 import AbstractStockService from './AbstractStockService';
-import { IntervalType, Interval, SymbolData, BaseSymbolData } from '../types';
-import msft from '../samples/msft.json';
-import msftDaily from '../samples/msft-daily.json';
-import aapl from '../samples/aapl.json';
-import aaplDaily from '../samples/aapl-daily.json';
-import amd from '../samples/amd.json';
-import amdDaily from '../samples/amd-daily.json';
+import { IntervalType, Interval, SymbolDataRequest, SymbolData, BaseSymbolData } from '../types';
 import { getMovingAverage, getDips, getPeaks } from '../analysis';
 import { predictReversals } from '../prediction';
 
@@ -33,9 +28,13 @@ type AlphaVantageResponse = {
 };
 
 export default class AlphaVantageStockService extends AbstractStockService {
-  public async fetch(symbol: string): Promise<SymbolData> {
+  public async fetch({ symbol, type }: SymbolDataRequest): Promise<SymbolData> {
     try {
-      return this.transform(amd);
+      const { data } = await axios.get('https://www.alphavantage.co/query', {
+        params: this.createRequestParams(symbol, type)
+      });
+
+      return this.transform(data);
     } catch(e) {
       console.log(e);
     }
@@ -80,5 +79,26 @@ export default class AlphaVantageStockService extends AbstractStockService {
         volume: parseFloat(shareData['5. volume'] || shareData['6. volume'])
       };
     }).reverse();
+  }
+
+  private createRequestParams(symbol: string, type: 'daily' | 'intraday'): any {
+    const baseParams = {
+      symbol,
+      apikey: 'M6DLG2L0G8O2F50G',
+      outputsize: 'full'
+    };
+
+    if (type === 'daily') {
+      return {
+        ...baseParams,
+        function: 'TIME_SERIES_DAILY_ADJUSTED'
+      };
+    } else {
+      return {
+        ...baseParams,
+        function: 'TIME_SERIES_INTRADAY',
+        interval: '5min'
+      };
+    }
   }
 }

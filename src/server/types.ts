@@ -38,3 +38,8 @@ export interface SymbolData extends BaseSymbolData {
 }
 
 export type IntervalPredicate = (a: Interval, b: Interval) => boolean;
+
+export interface SymbolDataRequest {
+  symbol: string;
+  type: 'daily' | 'intraday';
+}

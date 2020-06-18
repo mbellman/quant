@@ -21,6 +21,14 @@ const ctx = canvas.getContext('2d');
 canvas.width = canvas.clientWidth;
 canvas.height = canvas.clientHeight;
 
+const Color = {
+  RED: '#f00',
+  GREEN: '#0f0',
+  BACKGROUND: '#000',
+  GRID_LINE: '#222',
+  WHITE: '#fff'
+};
+
 function getRange(intervals: Interval[]): Range {
   return {
     low: Math.min(...intervals.map(({ low }) => low)),
@@ -93,7 +101,7 @@ function drawCirclesBatched(points: Point[], radius: number, color: string): voi
 function drawCandlestick({ open, close, high, low }: Interval, bounds: Rect, shouldShowCandle: boolean): void {
   const dy = bounds.height / (high - low);
   const isGreen = close > open;
-  const color = isGreen ? '#0f0' : '#f00';
+  const color = isGreen ? Color.GREEN : Color.RED;
   const candleTop = isGreen ? close : open;
   const candleBottom = isGreen ? open : close;
   const topWickHeight = (high - candleTop) * dy;
@@ -129,7 +137,7 @@ function drawGridLines({ intervals, type }: SymbolData, scale: number = 1.0, mou
     ? ({ time }: Interval) => `${new Date(time).getMonth() + 1}/${new Date(time).getDate()}`
     : ({ time }: Interval) => `${new Date(time).getFullYear()}`;
 
-  ctx.strokeStyle = '#237';
+  ctx.strokeStyle = Color.GRID_LINE;
   ctx.lineWidth = 1;
 
   line({ x: 0, y: offset }, { x: canvas.width, y: offset });
@@ -145,7 +153,7 @@ function drawGridLines({ intervals, type }: SymbolData, scale: number = 1.0, mou
       line({ x: i * dx, y: 0 }, { x: i * dx, y: canvas.height });
 
       ctx.font = '14px Arial';
-      ctx.fillStyle = '#fff';
+      ctx.fillStyle = Color.WHITE;
 
       ctx.fillText(getDividerLabel(interval), i * dx, 20);
     }
@@ -183,7 +191,7 @@ function drawIntervals({ intervals }: SymbolData, scale: number = 1.0, mouseY: n
     drawCandlestick(interval, bounds, /* shouldShowCandle */ step === 1);
 
     if (y < canvasMouseY && y + height > canvasMouseY) {
-      ctx.strokeStyle = '#fff';
+      ctx.strokeStyle = Color.WHITE;
 
       line({ x: bounds.x, y: canvasMouseY }, { x: bounds.x + bounds.width, y: canvasMouseY });
     }
@@ -291,7 +299,7 @@ function drawPredictions({ intervals, predictedDips, predictedPeaks }: SymbolDat
 
     peakPoints.push(point);
 
-    ctx.strokeStyle = '#f00';
+    ctx.strokeStyle = Color.RED;
 
     line(point, { x: point.x + 100, y: point.y + 100 });
   }
@@ -313,7 +321,7 @@ function drawPredictions({ intervals, predictedDips, predictedPeaks }: SymbolDat
 
     dipPoints.push(point);
 
-    ctx.strokeStyle = '#0f0';
+    ctx.strokeStyle = Color.GREEN;
 
     line(point, { x: point.x + 100, y: point.y - 100 });
   }
@@ -354,8 +362,8 @@ function drawVolume(intervals: Interval[]): void {
     });
   }
 
-  drawRectanglesBatched(redRects, '#f00');
-  drawRectanglesBatched(greenRects, '#0f0');
+  drawRectanglesBatched(redRects, Color.RED);
+  drawRectanglesBatched(greenRects, Color.GREEN);
 
   ctx.restore();
 }
@@ -370,8 +378,8 @@ function drawDollarValues({ intervals }: SymbolData, scale: number, mouseY: numb
   const mouseYPrice = Math.max(properLow + (properHigh - properLow) * (1 - mouseYRatio), 0);
 
   ctx.font = '18px Arial';
-  ctx.fillStyle = '#fff';
-  ctx.strokeStyle = '#126';
+  ctx.fillStyle = Color.WHITE;
+  ctx.strokeStyle = Color.GRID_LINE;
 
   ctx.fillText(getDollarValue(high), 10, offset + 6);
   ctx.fillText(getDollarValue(median), 10, canvas.height / 2 + 6);
@@ -380,7 +388,7 @@ function drawDollarValues({ intervals }: SymbolData, scale: number, mouseY: numb
 }
 
 export function plotData(data: SymbolData, leftCutoff: number = 0, rightCutoff: number = 0, mouseY: number = 0): void {
-  ctx.fillStyle = '#015';
+  ctx.fillStyle = Color.BACKGROUND;
 
   rectangle({
     x: 0,
@@ -407,4 +415,8 @@ export function plotData(data: SymbolData, leftCutoff: number = 0, rightCutoff: 
   drawReversals(visibleData, scale, leftCutoff);
   drawPredictions(visibleData, scale, leftCutoff);
   drawDollarValues(visibleData, scale, mouseY);
+}
+
+export function plotDailyComposite(data: SymbolData): void {
+
 }

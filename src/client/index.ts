@@ -1,12 +1,22 @@
 import axios from 'axios';
 import { plotData } from './render';
+import { SymbolData } from '../server/types';
+
+interface State {
+  data: SymbolData;
+  mouseX: number;
+  mouseY: number;
+  leftCutoff: number;
+  rightCutoff: number;
+  wheelMomentum: number;
+  dragMomentum: number;
+}
 
 async function main() {
-  const { data } = await axios.get('/api/test');
+  showSymbolData('SPY', 'intraday');
 
-  plotData(data);
-
-  const state = {
+  const state: State = {
+    data: {} as SymbolData,
     mouseX: 0,
     mouseY: 0,
     leftCutoff: 0,
@@ -15,14 +25,32 @@ async function main() {
     dragMomentum: 0
   };
 
+  async function showSymbolData(symbol: string, type: 'daily' | 'intraday'): Promise<void> {
+    (document.querySelector('#symbol') as HTMLInputElement).value = symbol;
+
+    const { data } = await axios.get(`/api/${symbol}/${type}`);
+
+    state.data = data;
+    state.leftCutoff = 0;
+    state.rightCutoff = 0;
+    state.wheelMomentum = 0;
+    state.dragMomentum = 0;
+  
+    plotData(data);
+  }
+
+  function getCurrentSymbol(): string {
+    return (document.querySelector('#symbol') as HTMLInputElement).value;
+  }
+
   function getTotalVisibleIntervals() {
-    return data.intervals.length - (state.leftCutoff + state.rightCutoff);
+    return state.data.intervals.length - (state.leftCutoff + state.rightCutoff);
   }
 
   function updateCutoff(left: number, right: number): void {
     const newLeftCutoff = Math.max(state.leftCutoff + left, 0);
     const newRightCutoff = Math.max(state.rightCutoff + right, 0);
-    const totalRemainingIntervals = data.intervals.length - newRightCutoff - newLeftCutoff;
+    const totalRemainingIntervals = state.data.intervals.length - newRightCutoff - newLeftCutoff;
 
     if (totalRemainingIntervals > 50) {
       state.leftCutoff = newLeftCutoff;
@@ -64,11 +92,35 @@ async function main() {
       return;
     }
 
-    plotData(data, state.leftCutoff, state.rightCutoff, state.mouseY);
+    plotData(state.data as SymbolData, state.leftCutoff, state.rightCutoff, state.mouseY);
     requestAnimationFrame(refreshChart);
   }
 
-  function onMouseDown(e: MouseEvent): void {
+  document.addEventListener('wheel', e => {
+    const shouldRefreshChart = (
+      state.wheelMomentum === 0 &&
+      state.dragMomentum === 0
+    );
+
+    state.wheelMomentum += e.deltaY;
+    state.mouseX = e.clientX;
+
+    if (shouldRefreshChart) {
+      refreshChart();
+    }
+  });
+
+  document.addEventListener('mousemove', e => {
+    const isRefreshing = state.wheelMomentum !== 0 || state.dragMomentum !== 0;
+
+    state.mouseY = e.clientY;
+
+    if (!isRefreshing) {
+      plotData(state.data, state.leftCutoff, state.rightCutoff, state.mouseY);
+    }
+  });
+
+  document.addEventListener('mousedown', (e: MouseEvent) => {
     let { clientX: lastX } = e;
 
     function onMouseMove(e: MouseEvent): void {
@@ -94,33 +146,19 @@ async function main() {
     document.addEventListener('mouseup', () => {
       document.removeEventListener('mousemove', onMouseMove);
     });
-  }
-
-  document.addEventListener('wheel', e => {
-    const shouldRefreshChart = (
-      state.wheelMomentum === 0 &&
-      state.dragMomentum === 0
-    );
-
-    state.wheelMomentum += e.deltaY;
-    state.mouseX = e.clientX;
-
-    if (shouldRefreshChart) {
-      refreshChart();
-    }
   });
 
-  document.addEventListener('mousemove', e => {
-    const isRefreshing = state.wheelMomentum !== 0 || state.dragMomentum !== 0;
-
-    state.mouseY = e.clientY;
-
-    if (!isRefreshing) {
-      plotData(data, state.leftCutoff, state.rightCutoff, state.mouseY);
-    }
+  document.querySelector('#daily-button').addEventListener('click', () => {
+    showSymbolData(getCurrentSymbol(), 'daily');
   });
 
-  document.addEventListener('mousedown', onMouseDown);
+  document.querySelector('#intraday-button').addEventListener('click', () => {
+    showSymbolData(getCurrentSymbol(), 'intraday');
+  });
+
+  document.querySelector('#daily-composite-button').addEventListener('click', () => {
+
+  });
 }
 
 main();

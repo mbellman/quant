@@ -5,20 +5,43 @@
     <style>
       body {
         background-color: #002;
+        overflow: hidden;
+      }
+
+      input, button {
+        background-color: #224;
+        color: #fff;
+        font-size: 18px;
+      }
+
+      button {
+        cursor: pointer;
+        padding: 1px;
+      }
+
+      button:hover {
+        background-color: #335;
       }
 
       canvas {
         border: 1px solid black;
-        height: 90%;
+        height: calc(100% - 50px);
         left: 50%;
+        margin-top: 25px;
         position: absolute;
         top: 50%;
         transform: translate(-50%, -50%);
-        width: 90%;
+        width: 100%;
       }
     </style>
   </head>
   <body>
+    <div class="controls">
+      <input id="symbol" placeholder="Symbol" value="SPY">
+      <button id="daily-button">Daily</button>
+      <button id="intraday-button">Intraday</button>
+      <button id="daily-composite-button">Daily Composite</button>
+    </div>
     <canvas></canvas>
   </body>
 </html>
