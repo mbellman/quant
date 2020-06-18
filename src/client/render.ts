@@ -98,6 +98,23 @@ function drawCirclesBatched(points: Point[], radius: number, color: string): voi
   });
 }
 
+function drawLinesBatched(points: Point[], color: string, lineWidth: number = 1): void {
+  ctx.lineWidth = lineWidth;
+  ctx.strokeStyle = color;
+
+  ctx.beginPath();
+
+  for (let i = 0; i < points.length; i++) {
+    const previousPoint = points[i - 1] || points[i];
+    const currentPoint = points[i];
+
+    ctx.moveTo(previousPoint.x, previousPoint.y);
+    ctx.lineTo(currentPoint.x, currentPoint.y);
+  }
+
+  ctx.stroke();
+}
+
 function drawCandlestick({ open, close, high, low }: Interval, bounds: Rect, shouldShowCandle: boolean): void {
   const dy = bounds.height / (high - low);
   const isGreen = close > open;
@@ -417,6 +434,90 @@ export function plotData(data: SymbolData, leftCutoff: number = 0, rightCutoff: 
   drawDollarValues(visibleData, scale, mouseY);
 }
 
-export function plotDailyComposite(data: SymbolData): void {
+export function plotDailyComposite({ intervals }: SymbolData): void {
+  ctx.fillStyle = Color.BACKGROUND;
 
+  rectangle({
+    x: 0,
+    y: 0,
+    width: canvas.width,
+    height: canvas.height
+  });
+
+  const dayGroupedIntervals = {};
+
+  function plotSingleDay(intervals: Interval[]): void {
+    const dailyHigh = Math.max(...intervals.map(({ high }) => high));
+    const dailyLow = Math.min(...intervals.map(({ low }) => low));
+    const dx = canvas.width / intervals.length;
+    const dy = canvas.height / (dailyHigh - dailyLow);
+    const points: Point[] = [];
+
+    ctx.strokeStyle = Color.GRID_LINE;
+
+    for (let i = 0; i < intervals.length; i++) {
+      const interval = intervals[i];
+      const { open } = interval;
+
+      points.push({
+        x: i * dx,
+        y: canvas.height - dy * (dailyHigh - open)
+      });
+    }
+
+    drawLinesBatched(points, '#555');
+  }
+
+  function plotAverageDay(): void {
+    const averages: number[] = [];
+    const dayKeys = Object.keys(dayGroupedIntervals);
+    const INTERVALS_PER_DAY = 78;
+    const scale = 0.5;
+
+    function getAverage(numbers: number[]) {
+      return numbers.reduce((total, n) => total + n, 0) / numbers.length;
+    }
+
+    for (let i = 0; i < INTERVALS_PER_DAY; i++) {
+      const compositedValues: number[] = [];
+
+      for (const key of dayKeys) {
+        const interval: Interval = dayGroupedIntervals[key][i];
+
+        compositedValues.push(interval?.open || compositedValues[compositedValues.length - 1]);
+      }
+
+      averages.push(getAverage(compositedValues));
+    }
+
+    const highestAverage = Math.max(...averages);
+    const lowestAverage = Math.min(...averages);
+    const dx = canvas.width / averages.length;
+    const dy = canvas.height / (highestAverage - lowestAverage);
+    const points: Point[] = [];
+
+    for (let i = 0; i < averages.length; i++) {
+      points.push({
+        x: i * dx,
+        y: canvas.height - dy * (highestAverage - averages[i]) * scale - canvas.height * (1 - scale) * 0.5
+      });
+    }
+
+    drawLinesBatched(points, '#fa0', 2);
+  }
+
+  for (const interval of intervals) {
+    const date = new Date(interval.time);
+    const groupKey = `${date.getMonth()}:${date.getDate()}:${date.getFullYear()}`;
+
+    if (!dayGroupedIntervals[groupKey]) {
+      dayGroupedIntervals[groupKey] = [];
+    }
+
+    dayGroupedIntervals[groupKey].push(interval);
+  }
+
+  Object.keys(dayGroupedIntervals).forEach(key => plotSingleDay(dayGroupedIntervals[key]));
+
+  plotAverageDay();
 }

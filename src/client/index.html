@@ -23,8 +23,7 @@
         background-color: #335;
       }
 
-      canvas {
-        border: 1px solid black;
+      canvas, .loader-overlay {
         height: calc(100% - 50px);
         left: 50%;
         margin-top: 25px;
@@ -32,6 +31,26 @@
         top: 50%;
         transform: translate(-50%, -50%);
         width: 100%;
+      }
+
+      @keyframes pulse {
+        0% {
+          opacity: 0.5;
+        }
+
+        50% {
+          opacity: 0.75;
+        }
+
+        100% {
+          opacity: 0.5;
+        }
+      }
+
+      .loader-overlay {
+        animation: pulse 2s ease-in-out infinite;
+        background-color: #005;
+        z-index: 5;
       }
     </style>
   </head>
@@ -43,5 +62,6 @@
       <button id="daily-composite-button">Daily Composite</button>
     </div>
     <canvas></canvas>
+    <div class="loader-overlay"></div>
   </body>
 </html>

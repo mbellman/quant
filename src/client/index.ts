@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { plotData } from './render';
+import { plotData, plotDailyComposite } from './render';
 import { SymbolData } from '../server/types';
 
 interface State {
@@ -10,6 +10,7 @@ interface State {
   rightCutoff: number;
   wheelMomentum: number;
   dragMomentum: number;
+  isViewingComposite: boolean;
 }
 
 async function main() {
@@ -22,19 +23,31 @@ async function main() {
     leftCutoff: 0,
     rightCutoff: 0,
     wheelMomentum: 0,
-    dragMomentum: 0
+    dragMomentum: 0,
+    isViewingComposite: false
   };
+
+  async function getSymbolData(symbol: string, type: 'daily' | 'intraday'): Promise<SymbolData> {
+    (document.querySelector('.loader-overlay') as HTMLElement).style.display = 'block';
+
+    const { data } = await axios.get(`/api/${symbol}/${type}`);
+
+    (document.querySelector('.loader-overlay') as HTMLElement).style.display = 'none';
+
+    return data;
+  }
 
   async function showSymbolData(symbol: string, type: 'daily' | 'intraday'): Promise<void> {
     (document.querySelector('#symbol') as HTMLInputElement).value = symbol;
 
-    const { data } = await axios.get(`/api/${symbol}/${type}`);
+    const data = await getSymbolData(symbol, type);
 
     state.data = data;
     state.leftCutoff = 0;
     state.rightCutoff = 0;
     state.wheelMomentum = 0;
     state.dragMomentum = 0;
+    state.isViewingComposite = false;
   
     plotData(data);
   }
@@ -97,6 +110,10 @@ async function main() {
   }
 
   document.addEventListener('wheel', e => {
+    if (state.isViewingComposite) {
+      return;
+    }
+
     const shouldRefreshChart = (
       state.wheelMomentum === 0 &&
       state.dragMomentum === 0
@@ -111,6 +128,10 @@ async function main() {
   });
 
   document.addEventListener('mousemove', e => {
+    if (state.isViewingComposite) {
+      return;
+    }
+
     const isRefreshing = state.wheelMomentum !== 0 || state.dragMomentum !== 0;
 
     state.mouseY = e.clientY;
@@ -121,6 +142,10 @@ async function main() {
   });
 
   document.addEventListener('mousedown', (e: MouseEvent) => {
+    if (state.isViewingComposite) {
+      return;
+    }
+
     let { clientX: lastX } = e;
 
     function onMouseMove(e: MouseEvent): void {
@@ -156,8 +181,14 @@ async function main() {
     showSymbolData(getCurrentSymbol(), 'intraday');
   });
 
-  document.querySelector('#daily-composite-button').addEventListener('click', () => {
+  document.querySelector('#daily-composite-button').addEventListener('click', async () => {
+    const data = await getSymbolData(getCurrentSymbol(), 'intraday');
 
+    state.wheelMomentum = 0;
+    state.dragMomentum = 0;
+    state.isViewingComposite = true;
+
+    plotDailyComposite(data);
   });
 }
 
