@@ -30,6 +30,7 @@ export interface BaseSymbolData {
   longMovingAverage: number[];
   peaks: number[];
   dips: number[];
+  momentum: number[];
 }
 
 export interface SymbolData extends BaseSymbolData {

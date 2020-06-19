@@ -1,7 +1,7 @@
 import axios from 'axios';
 import AbstractStockService from './AbstractStockService';
 import { IntervalType, Interval, SymbolDataRequest, SymbolData, BaseSymbolData } from '../types';
-import { getMovingAverage, getDips, getPeaks } from '../analysis';
+import { getMovingAverage, getDips, getPeaks, getMomentum } from '../analysis';
 import { predictReversals } from '../prediction';
 
 type AlphaVantageShareData = {
@@ -44,6 +44,7 @@ export default class AlphaVantageStockService extends AbstractStockService {
     const interval = response['Meta Data']['4. Interval'] || 'Daily';
     const intervals = this.createIntervals(response[`Time Series (${interval})`]);
     const isIntraday = response['Meta Data']['1. Information'].includes('Intraday');
+    const momentum = getMomentum(intervals);
 
     const data: BaseSymbolData = {
       symbol: response['Meta Data']['2. Symbol'],
@@ -52,10 +53,11 @@ export default class AlphaVantageStockService extends AbstractStockService {
       shortMovingAverage: getMovingAverage(intervals, 40),
       longMovingAverage: getMovingAverage(intervals, 80),
       peaks: getPeaks(intervals),
-      dips: getDips(intervals)
+      dips: getDips(intervals),
+      momentum
     };
 
-    const [ predictedPeaks, predictedDips ] = predictReversals(data);
+    const [ predictedPeaks, predictedDips ] = predictReversals(momentum);
 
     return {
       ...data,

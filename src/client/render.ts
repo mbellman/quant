@@ -297,7 +297,7 @@ function drawPredictions({ intervals, predictedDips, predictedPeaks }: SymbolDat
   const peakPoints: Point[] = [];
   const dipPoints: Point[] = [];
 
-  ctx.lineWidth = 3;
+  ctx.lineWidth = 2;
 
   for (const peak of predictedPeaks) {
     const index = peak - leftCutoff;
@@ -344,10 +344,10 @@ function drawPredictions({ intervals, predictedDips, predictedPeaks }: SymbolDat
   }
 
   drawCirclesBatched(peakPoints, 10, '#000');
-  drawCirclesBatched(peakPoints, 7, '#0ff');
+  drawCirclesBatched(peakPoints, 7, '#fa0');
 
   drawCirclesBatched(dipPoints, 10, '#000');
-  drawCirclesBatched(dipPoints, 7, '#ff0');
+  drawCirclesBatched(dipPoints, 7, '#0fa');
 }
 
 function drawVolume(intervals: Interval[]): void {
@@ -385,6 +385,31 @@ function drawVolume(intervals: Interval[]): void {
   ctx.restore();
 }
 
+function drawMomentum(momentum: number[]): void {
+  const height = 100;
+  const high = Math.max(...momentum);
+  const low = Math.min(...momentum);
+  const range = high - low;
+  const dy = height / range;
+  const dx = canvas.width / momentum.length;
+
+  const points: Point[] = [{
+    x: 0,
+    y: canvas.height - height + high * dy
+  }];
+
+  for (let i = 0; i < momentum.length; i++) {
+    const moment = momentum[i];
+
+    points.push({
+      x: dx + i * dx,
+      y: canvas.height - height + (high - moment) * dy
+    });
+  }
+
+  drawLinesBatched(points, '#fa0', 2);
+}
+
 function drawDollarValues({ intervals }: SymbolData, scale: number, mouseY: number): void {
   const { high, low } = getRange(intervals);
   const offset = canvas.height * (1 - scale) * 0.5;
@@ -420,6 +445,7 @@ export function plotData(data: SymbolData, leftCutoff: number = 0, rightCutoff: 
 
   const visibleData = {
     ...data,
+    momentum: data.momentum.slice(start, end),
     intervals: data.intervals.slice(start, end),
     shortMovingAverage: data.shortMovingAverage.slice(start, end),
     longMovingAverage: data.longMovingAverage.slice(start, end)
@@ -431,6 +457,7 @@ export function plotData(data: SymbolData, leftCutoff: number = 0, rightCutoff: 
   drawMovingAverages(visibleData, scale);
   drawReversals(visibleData, scale, leftCutoff);
   drawPredictions(visibleData, scale, leftCutoff);
+  drawMomentum(visibleData.momentum);
   drawDollarValues(visibleData, scale, mouseY);
 }
 
