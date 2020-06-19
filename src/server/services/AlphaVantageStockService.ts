@@ -50,8 +50,8 @@ export default class AlphaVantageStockService extends AbstractStockService {
       symbol: response['Meta Data']['2. Symbol'],
       type: isIntraday ? IntervalType.INTRADAY : IntervalType.DAILY,
       intervals,
-      shortMovingAverage: getMovingAverage(intervals, 40),
-      longMovingAverage: getMovingAverage(intervals, 80),
+      shortMovingAverage: getMovingAverage(intervals, 20),
+      longMovingAverage: getMovingAverage(intervals, 40),
       peaks: getPeaks(intervals),
       dips: getDips(intervals),
       momentum

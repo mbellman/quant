@@ -42,11 +42,11 @@ export function predictReversals(momentum: number[]): [number[], number[]] {
 
       signal += isUpwardTrend ? 1 : -1;
 
-      if (signal >= 1.5) {
+      if (signal >= 2) {
         predictedDips.push(i);
 
         signal = 0;
-      } else if (signal <= -1.5) {
+      } else if (signal <= -2) {
         predictedPeaks.push(i);
 
         signal = 0;

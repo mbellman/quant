@@ -154,13 +154,16 @@ function drawGridLines({ intervals, type }: SymbolData, scale: number = 1.0, mou
     ? ({ time }: Interval) => `${new Date(time).getMonth() + 1}/${new Date(time).getDate()}`
     : ({ time }: Interval) => `${new Date(time).getFullYear()}`;
 
-  ctx.strokeStyle = Color.GRID_LINE;
   ctx.lineWidth = 1;
+  ctx.strokeStyle = '#666';
+
+  line({ x: 0, y: canvasMouseY }, { x: canvas.width, y: canvasMouseY });
+
+  ctx.strokeStyle = Color.GRID_LINE;
 
   line({ x: 0, y: offset }, { x: canvas.width, y: offset });
   line({ x: 0, y: canvas.height / 2 }, { x: canvas.width, y: canvas.height / 2 });
   line({ x: 0, y: canvas.height - offset }, { x: canvas.width, y: canvas.height - offset });
-  line({ x: 0, y: canvasMouseY }, { x: canvas.width, y: canvasMouseY });
 
   for (let i = 1; i < intervals.length; i++) {
     const previousInterval = intervals[i - 1];
@@ -282,11 +285,11 @@ function drawReversals({ intervals, peaks, dips }: SymbolData, scale: number = 1
     });
   }
 
-  drawCirclesBatched(peakPoints, 10, '#000');
-  drawCirclesBatched(peakPoints, 7, '#0f0');
+  drawCirclesBatched(peakPoints, 8, '#000');
+  drawCirclesBatched(peakPoints, 6, '#0f0');
 
-  drawCirclesBatched(dipPoints, 10, '#000');
-  drawCirclesBatched(dipPoints, 7, '#f00');
+  drawCirclesBatched(dipPoints, 8, '#000');
+  drawCirclesBatched(dipPoints, 6, '#f00');
 }
 
 function drawPredictions({ intervals, predictedDips, predictedPeaks }: SymbolData, scale: number = 1.0, leftCutoff: number = 0): void {
@@ -296,6 +299,7 @@ function drawPredictions({ intervals, predictedDips, predictedPeaks }: SymbolDat
   const offset = canvas.height * (1 - scale) * 0.5;
   const peakPoints: Point[] = [];
   const dipPoints: Point[] = [];
+  const lineLength = 50;
 
   ctx.lineWidth = 2;
 
@@ -318,7 +322,7 @@ function drawPredictions({ intervals, predictedDips, predictedPeaks }: SymbolDat
 
     ctx.strokeStyle = Color.RED;
 
-    line(point, { x: point.x + 100, y: point.y + 100 });
+    line(point, { x: point.x + lineLength, y: point.y + lineLength });
   }
 
   for (const dip of predictedDips) {
@@ -340,14 +344,14 @@ function drawPredictions({ intervals, predictedDips, predictedPeaks }: SymbolDat
 
     ctx.strokeStyle = Color.GREEN;
 
-    line(point, { x: point.x + 100, y: point.y - 100 });
+    line(point, { x: point.x + lineLength, y: point.y - lineLength });
   }
 
-  drawCirclesBatched(peakPoints, 10, '#000');
-  drawCirclesBatched(peakPoints, 7, '#fa0');
+  drawCirclesBatched(peakPoints, 8, '#000');
+  drawCirclesBatched(peakPoints, 6, '#fa0');
 
-  drawCirclesBatched(dipPoints, 10, '#000');
-  drawCirclesBatched(dipPoints, 7, '#0fa');
+  drawCirclesBatched(dipPoints, 8, '#000');
+  drawCirclesBatched(dipPoints, 6, '#0fa');
 }
 
 function drawVolume(intervals: Interval[]): void {
@@ -392,11 +396,7 @@ function drawMomentum(momentum: number[]): void {
   const range = high - low;
   const dy = height / range;
   const dx = canvas.width / momentum.length;
-
-  const points: Point[] = [{
-    x: 0,
-    y: canvas.height - height + high * dy
-  }];
+  const points: Point[] = []
 
   for (let i = 0; i < momentum.length; i++) {
     const moment = momentum[i];
@@ -407,7 +407,7 @@ function drawMomentum(momentum: number[]): void {
     });
   }
 
-  drawLinesBatched(points, '#fa0', 2);
+  drawLinesBatched(points, '#a0f', 2);
 }
 
 function drawDollarValues({ intervals }: SymbolData, scale: number, mouseY: number): void {
@@ -419,7 +419,7 @@ function drawDollarValues({ intervals }: SymbolData, scale: number, mouseY: numb
   const mouseYRatio = (mouseY - canvas.getBoundingClientRect().top) / canvas.height;
   const mouseYPrice = Math.max(properLow + (properHigh - properLow) * (1 - mouseYRatio), 0);
 
-  ctx.font = '18px Arial';
+  ctx.font = '16px Arial';
   ctx.fillStyle = Color.WHITE;
   ctx.strokeStyle = Color.GRID_LINE;
 

@@ -17,7 +17,7 @@ module.exports = {
     open: true,
     before: app => {
       app.get('/api/:symbol/:type', async (req, res) => {
-        clearModuleCache();
+        // clearModuleCache();
 
         const { getSymbolData } = require('./dist/server');
         const data = await getSymbolData(req.params);
