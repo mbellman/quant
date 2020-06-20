@@ -27,13 +27,13 @@ export function predictReversals(momentum: number[]): [number[], number[]] {
   const predictedPeaks: number[] = [];
   const predictedDips: number[] = [];
   const momentumDeltas = getMomentumDeltas(momentum);
-  const threshold = 5;
+  const reversalThreshold = 2;
   let signal = 0;
 
   for (let i = 1; i < momentumDeltas.length; i++) {
     const current = momentumDeltas[i];
     const previous = momentumDeltas[i - 1];
-    const isStrongTrend = Math.abs(current) / Math.abs(previous) > threshold;
+    const isStrongTrend = Math.abs(current) / Math.abs(previous) > reversalThreshold;
 
     signal *= 0.9;
 

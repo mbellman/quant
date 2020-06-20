@@ -1,4 +1,5 @@
 import { SymbolData, Interval, IntervalType, IntervalPredicate } from '../server/types';
+import Canvas from './Canvas';
 
 interface Point {
   x: number;
@@ -15,18 +16,16 @@ interface Range {
   low: number;
 }
 
-const canvas = document.querySelector('canvas');
-const ctx = canvas.getContext('2d');
-
-canvas.width = canvas.clientWidth;
-canvas.height = canvas.clientHeight;
+const canvas = new Canvas(document.querySelector('canvas'));
 
 const Color = {
   RED: '#f00',
   GREEN: '#0f0',
   BACKGROUND: '#000',
   GRID_LINE: '#222',
-  WHITE: '#fff'
+  MOMENTUM_LINE: '#a0f',
+  WHITE: '#fff',
+  BLACK: '#000'
 };
 
 function getRange(intervals: Interval[]): Range {
@@ -62,59 +61,6 @@ function isLaterDay(a: Date, b: Date): boolean {
   );
 }
 
-function line(start: Point, end: Point): void {
-  ctx.beginPath();
-  ctx.moveTo(start.x, start.y);
-  ctx.lineTo(end.x, end.y);
-  ctx.stroke();
-}
-
-function rectangle({ x, y, width, height }: Rect): void {
-  ctx.beginPath();
-  ctx.rect(x, y, width, height);
-  ctx.fill();
-}
-
-function drawBatched<T>(elements: T[], color: string, handler: (element: T) => void): void {
-  ctx.fillStyle = color;
-
-  ctx.beginPath();
-
-  for (const element of elements) {
-    handler(element);
-  }
-
-  ctx.fill();
-}
-
-function drawRectanglesBatched(rects: Rect[], color: string): void {
-  drawBatched(rects, color, ({ x, y, width, height }) => ctx.rect(x, y, width, height));
-}
-
-function drawCirclesBatched(points: Point[], radius: number, color: string): void {
-  drawBatched(points, color, ({ x, y }) => {
-    ctx.moveTo(x, y);
-    ctx.arc(x, y, radius, 0, Math.PI * 2);
-  });
-}
-
-function drawLinesBatched(points: Point[], color: string, lineWidth: number = 1): void {
-  ctx.lineWidth = lineWidth;
-  ctx.strokeStyle = color;
-
-  ctx.beginPath();
-
-  for (let i = 0; i < points.length; i++) {
-    const previousPoint = points[i - 1] || points[i];
-    const currentPoint = points[i];
-
-    ctx.moveTo(previousPoint.x, previousPoint.y);
-    ctx.lineTo(currentPoint.x, currentPoint.y);
-  }
-
-  ctx.stroke();
-}
-
 function drawCandlestick({ open, close, high, low }: Interval, bounds: Rect, shouldShowCandle: boolean): void {
   const dy = bounds.height / (high - low);
   const isGreen = close > open;
@@ -124,10 +70,10 @@ function drawCandlestick({ open, close, high, low }: Interval, bounds: Rect, sho
   const topWickHeight = (high - candleTop) * dy;
   const bottomWickHeight = (candleBottom - low) * dy;
 
-  ctx.strokeStyle = ctx.fillStyle = color;
+  canvas.setColor(color);
 
   if (shouldShowCandle) {
-    rectangle({
+    canvas.rect({
       x: bounds.x,
       y: bounds.y + topWickHeight,
       width: bounds.width,
@@ -135,16 +81,16 @@ function drawCandlestick({ open, close, high, low }: Interval, bounds: Rect, sho
     });
   }
 
-  line(
-    { x: bounds.x + bounds.width / 2, y: bounds.y },
-    { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height }
-  );
+  canvas.line({
+    from: { x: bounds.x + bounds.width / 2, y: bounds.y },
+    to: { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height }
+  });
 }
 
 function drawGridLines({ intervals, type }: SymbolData, scale: number = 1.0, mouseY: number): void {
   const dx = canvas.width / intervals.length;
   const offset = canvas.height * (1 - scale) * 0.5;
-  const canvasMouseY = mouseY - canvas.getBoundingClientRect().top;
+  const canvasMouseY = mouseY - canvas.bounds.top;
 
   const dividerPredicate: IntervalPredicate = type === IntervalType.INTRADAY
     ? (previousInterval, nextInterval) => isLaterDay(new Date(nextInterval.time), new Date(previousInterval.time))
@@ -154,28 +100,21 @@ function drawGridLines({ intervals, type }: SymbolData, scale: number = 1.0, mou
     ? ({ time }: Interval) => `${new Date(time).getMonth() + 1}/${new Date(time).getDate()}`
     : ({ time }: Interval) => `${new Date(time).getFullYear()}`;
 
-  ctx.lineWidth = 1;
-  ctx.strokeStyle = '#666';
+  canvas.setColor('#666');
+  canvas.line({ from: { x: 0, y: canvasMouseY }, to: { x: canvas.width, y: canvasMouseY } });
 
-  line({ x: 0, y: canvasMouseY }, { x: canvas.width, y: canvasMouseY });
-
-  ctx.strokeStyle = Color.GRID_LINE;
-
-  line({ x: 0, y: offset }, { x: canvas.width, y: offset });
-  line({ x: 0, y: canvas.height / 2 }, { x: canvas.width, y: canvas.height / 2 });
-  line({ x: 0, y: canvas.height - offset }, { x: canvas.width, y: canvas.height - offset });
+  canvas.setColor(Color.GRID_LINE);
+  canvas.line({ from: { x: 0, y: offset }, to: { x: canvas.width, y: offset } });
+  canvas.line({ from: { x: 0, y: canvas.height / 2 }, to: { x: canvas.width, y: canvas.height / 2 } });
+  canvas.line({ from: { x: 0, y: canvas.height - offset }, to: { x: canvas.width, y: canvas.height - offset } });
 
   for (let i = 1; i < intervals.length; i++) {
     const previousInterval = intervals[i - 1];
     const interval = intervals[i];
 
     if (dividerPredicate(previousInterval, interval)) {
-      line({ x: i * dx, y: 0 }, { x: i * dx, y: canvas.height });
-
-      ctx.font = '14px Arial';
-      ctx.fillStyle = Color.WHITE;
-
-      ctx.fillText(getDividerLabel(interval), i * dx, 20);
+      canvas.line({ from: { x: i * dx, y: 0 }, to: { x: i * dx, y: canvas.height } });
+      canvas.text('14px Arial', Color.WHITE, getDividerLabel(interval), { x: i * dx, y: 20 });
     }
   }
 }
@@ -186,15 +125,13 @@ function drawIntervals({ intervals }: SymbolData, scale: number = 1.0, mouseY: n
   const dy = canvas.height / (high - low) * scale;
   const offset = canvas.height * (1 - scale) * 0.5;
   const step = Math.max(intervals.length / canvas.width, 1);
-  const canvasMouseY = mouseY - canvas.getBoundingClientRect().top;
+  const canvasMouseY = mouseY - canvas.bounds.top;
 
   if (step > 2) {
     return;
   }
 
-  ctx.save();
-
-  ctx.globalAlpha = 2 - step;
+  canvas.setAlpha(2 - step);
 
   for (let i = 0; i < intervals.length; i++) {
     const interval = intervals[i];
@@ -211,13 +148,12 @@ function drawIntervals({ intervals }: SymbolData, scale: number = 1.0, mouseY: n
     drawCandlestick(interval, bounds, /* shouldShowCandle */ step === 1);
 
     if (y < canvasMouseY && y + height > canvasMouseY) {
-      ctx.strokeStyle = Color.WHITE;
-
-      line({ x: bounds.x, y: canvasMouseY }, { x: bounds.x + bounds.width, y: canvasMouseY });
+      canvas.setColor(Color.WHITE);
+      canvas.line({ from: { x: bounds.x, y: canvasMouseY }, to: { x: bounds.x + bounds.width, y: canvasMouseY } });
     }
   }
 
-  ctx.restore();
+  canvas.setAlpha(1.0);
 }
 
 function drawMovingAverages({ intervals, shortMovingAverage, longMovingAverage }: SymbolData, scale: number = 1.0): void {
@@ -227,21 +163,18 @@ function drawMovingAverages({ intervals, shortMovingAverage, longMovingAverage }
   const offset = canvas.height * (1 - scale) * 0.5;
 
   function drawMovingAverage(movingAverage: number[], color: string): void {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
-
-    ctx.beginPath();
+    canvas.setColor(color);
   
     for (let i = 0; i < movingAverage.length; i++) {
       const previousIndex = i > 0 ? i - 1 : i;
       const previousAverage = movingAverage[previousIndex];
       const average = movingAverage[i];
 
-      ctx.moveTo(previousIndex * dx + dx / 2, (high - previousAverage) * dy + offset);
-      ctx.lineTo(i * dx + dx / 2, (high - average) * dy + offset);
+      canvas.line({
+        from: { x: previousIndex * dx + dx / 2, y: (high - previousAverage) * dy + offset },
+        to: { x: i * dx + dx / 2, y: (high - average) * dy + offset }
+      });
     }
-
-    ctx.stroke();
   }
 
   drawMovingAverage(shortMovingAverage, '#0ff');
@@ -254,9 +187,6 @@ function drawReversals({ intervals, peaks, dips }: SymbolData, scale: number = 1
   const dy = canvas.height / (high - low) * scale;
   const offset = canvas.height * (1 - scale) * 0.5;
 
-  const peakPoints: Point[] = [];
-  const dipPoints: Point[] = [];
-
   for (const peak of peaks) {
     const index = peak - leftCutoff;
     const interval = intervals[index];
@@ -265,10 +195,15 @@ function drawReversals({ intervals, peaks, dips }: SymbolData, scale: number = 1
       continue;
     }
 
-    peakPoints.push({
+    const point: Point = {
       x: index * dx + dx / 2,
       y: (high - interval.high) * dy + offset
-    });
+    };
+
+    canvas.setColor(Color.BLACK);
+    canvas.circle({ x: point.x, y: point.y, radius: 8 });
+    canvas.setColor(Color.GREEN);
+    canvas.circle({ x: point.x, y: point.y, radius: 6 });
   }
 
   for (const dip of dips) {
@@ -279,17 +214,16 @@ function drawReversals({ intervals, peaks, dips }: SymbolData, scale: number = 1
       continue;
     }
 
-    dipPoints.push({
+    const point: Point = {
       x: index * dx + dx / 2,
       y: (high - interval.low) * dy + offset
-    });
+    };
+
+    canvas.setColor(Color.BLACK);
+    canvas.circle({ x: point.x, y: point.y, radius: 8 });
+    canvas.setColor(Color.RED);
+    canvas.circle({ x: point.x, y: point.y, radius: 6 });
   }
-
-  drawCirclesBatched(peakPoints, 8, '#000');
-  drawCirclesBatched(peakPoints, 6, '#0f0');
-
-  drawCirclesBatched(dipPoints, 8, '#000');
-  drawCirclesBatched(dipPoints, 6, '#f00');
 }
 
 function drawPredictions({ intervals, predictedDips, predictedPeaks }: SymbolData, scale: number = 1.0, leftCutoff: number = 0): void {
@@ -297,11 +231,7 @@ function drawPredictions({ intervals, predictedDips, predictedPeaks }: SymbolDat
   const dx = canvas.width / intervals.length;
   const dy = canvas.height / (high - low) * scale;
   const offset = canvas.height * (1 - scale) * 0.5;
-  const peakPoints: Point[] = [];
-  const dipPoints: Point[] = [];
   const lineLength = 50;
-
-  ctx.lineWidth = 2;
 
   for (const peak of predictedPeaks) {
     const index = peak - leftCutoff;
@@ -318,11 +248,12 @@ function drawPredictions({ intervals, predictedDips, predictedPeaks }: SymbolDat
       y: (high - average) * dy + offset
     };
 
-    peakPoints.push(point);
-
-    ctx.strokeStyle = Color.RED;
-
-    line(point, { x: point.x + lineLength, y: point.y + lineLength });
+    canvas.setColor(Color.BLACK);
+    canvas.circle({ x: point.x, y: point.y, radius: 8 });
+    canvas.setColor(Color.RED);
+    canvas.line({ from: point, to: { x: point.x + lineLength, y: point.y + lineLength } });
+    canvas.setColor('#fa0');
+    canvas.circle({ x: point.x, y: point.y, radius: 6 });
   }
 
   for (const dip of predictedDips) {
@@ -340,18 +271,14 @@ function drawPredictions({ intervals, predictedDips, predictedPeaks }: SymbolDat
       y: (high - average) * dy + offset
     };
 
-    dipPoints.push(point);
 
-    ctx.strokeStyle = Color.GREEN;
-
-    line(point, { x: point.x + lineLength, y: point.y - lineLength });
+    canvas.setColor(Color.BLACK);
+    canvas.circle({ x: point.x, y: point.y, radius: 8 });
+    canvas.setColor(Color.GREEN);
+    canvas.line({ from: point, to: { x: point.x + lineLength, y: point.y - lineLength } });
+    canvas.setColor('#0fa');
+    canvas.circle({ x: point.x, y: point.y, radius: 6 });
   }
-
-  drawCirclesBatched(peakPoints, 8, '#000');
-  drawCirclesBatched(peakPoints, 6, '#fa0');
-
-  drawCirclesBatched(dipPoints, 8, '#000');
-  drawCirclesBatched(dipPoints, 6, '#0fa');
 }
 
 function drawVolume(intervals: Interval[]): void {
@@ -363,30 +290,23 @@ function drawVolume(intervals: Interval[]): void {
     return;
   }
 
-  ctx.save();
-
-  ctx.globalAlpha = 1.5 - step;
-
-  const greenRects: Rect[] = [];
-  const redRects: Rect[] = [];
+  canvas.setAlpha(1.5 - step);
 
   for (let i = 0; i < intervals.length; i++) {
     const { volume, open, close } = intervals[i];
     const height = volume / highestVolume * 100;
-    const target = close > open ? greenRects : redRects;
 
-    target.push({
-      x: dx * i,
+    canvas.setColor(close > open ? Color.GREEN : Color.RED);
+
+    canvas.rect({
+      x: i * dx,
       y: canvas.height - height,
       width: dx,
       height
     });
   }
 
-  drawRectanglesBatched(redRects, Color.RED);
-  drawRectanglesBatched(greenRects, Color.GREEN);
-
-  ctx.restore();
+  canvas.setAlpha(1.0);
 }
 
 function drawMomentum(momentum: number[]): void {
@@ -396,18 +316,17 @@ function drawMomentum(momentum: number[]): void {
   const range = high - low;
   const dy = height / range;
   const dx = canvas.width / momentum.length;
-  const points: Point[] = []
+  const points: Point[] = [];
 
   for (let i = 0; i < momentum.length; i++) {
-    const moment = momentum[i];
-
     points.push({
       x: dx + i * dx,
-      y: canvas.height - height + (high - moment) * dy
+      y: canvas.height - height + (high - momentum[i]) * dy
     });
   }
 
-  drawLinesBatched(points, '#a0f', 2);
+  canvas.setColor(Color.MOMENTUM_LINE);
+  canvas.multiline(points);
 }
 
 function drawDollarValues({ intervals }: SymbolData, scale: number, mouseY: number): void {
@@ -416,28 +335,19 @@ function drawDollarValues({ intervals }: SymbolData, scale: number, mouseY: numb
   const median = (high + low) / 2;
   const properHigh = median + (high - median) / scale;
   const properLow = median - (median - low) / scale;
-  const mouseYRatio = (mouseY - canvas.getBoundingClientRect().top) / canvas.height;
+  const mouseYRatio = (mouseY - canvas.bounds.top) / canvas.height;
   const mouseYPrice = Math.max(properLow + (properHigh - properLow) * (1 - mouseYRatio), 0);
 
-  ctx.font = '16px Arial';
-  ctx.fillStyle = Color.WHITE;
-  ctx.strokeStyle = Color.GRID_LINE;
+  const font = '16px Arial';
 
-  ctx.fillText(getDollarValue(high), 10, offset + 6);
-  ctx.fillText(getDollarValue(median), 10, canvas.height / 2 + 6);
-  ctx.fillText(getDollarValue(low), 10, canvas.height - offset + 6);
-  ctx.fillText(getDollarValue(mouseYPrice), 10, mouseYRatio * canvas.height + 6);
+  canvas.text(font, Color.WHITE, getDollarValue(high), { x: 10, y: offset + 6 });
+  canvas.text(font, Color.WHITE, getDollarValue(median), { x: 10, y: canvas.height / 2 + 6 });
+  canvas.text(font, Color.WHITE, getDollarValue(low), { x: 10, y: canvas.height - offset + 6 });
+  canvas.text(font, Color.WHITE, getDollarValue(mouseYPrice), { x: 10, y: mouseYRatio * canvas.height + 6 });
 }
 
 export function plotData(data: SymbolData, leftCutoff: number = 0, rightCutoff: number = 0, mouseY: number = 0): void {
-  ctx.fillStyle = Color.BACKGROUND;
-
-  rectangle({
-    x: 0,
-    y: 0,
-    width: canvas.width,
-    height: canvas.height
-  });
+  canvas.clear(Color.BACKGROUND);
 
   const scale = 0.9;
   const start = leftCutoff;
@@ -459,17 +369,12 @@ export function plotData(data: SymbolData, leftCutoff: number = 0, rightCutoff: 
   drawPredictions(visibleData, scale, leftCutoff);
   drawMomentum(visibleData.momentum);
   drawDollarValues(visibleData, scale, mouseY);
+
+  canvas.render();
 }
 
 export function plotDailyComposite({ intervals }: SymbolData): void {
-  ctx.fillStyle = Color.BACKGROUND;
-
-  rectangle({
-    x: 0,
-    y: 0,
-    width: canvas.width,
-    height: canvas.height
-  });
+  canvas.clear(Color.BACKGROUND);
 
   const dayGroupedIntervals = {};
 
@@ -479,8 +384,6 @@ export function plotDailyComposite({ intervals }: SymbolData): void {
     const dx = canvas.width / intervals.length;
     const dy = canvas.height / (dailyHigh - dailyLow);
     const points: Point[] = [];
-
-    ctx.strokeStyle = Color.GRID_LINE;
 
     for (let i = 0; i < intervals.length; i++) {
       const interval = intervals[i];
@@ -492,7 +395,8 @@ export function plotDailyComposite({ intervals }: SymbolData): void {
       });
     }
 
-    drawLinesBatched(points, '#555');
+    canvas.setColor(Color.GRID_LINE);
+    canvas.multiline(points);
   }
 
   function plotAverageDay(): void {
@@ -530,7 +434,8 @@ export function plotDailyComposite({ intervals }: SymbolData): void {
       });
     }
 
-    drawLinesBatched(points, '#fa0', 2);
+    canvas.setColor('#fa0');
+    canvas.multiline(points);
   }
 
   for (const interval of intervals) {
@@ -547,4 +452,5 @@ export function plotDailyComposite({ intervals }: SymbolData): void {
   Object.keys(dayGroupedIntervals).forEach(key => plotSingleDay(dayGroupedIntervals[key]));
 
   plotAverageDay();
+  canvas.render();
 }

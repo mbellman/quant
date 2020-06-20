@@ -120,6 +120,7 @@ async function main() {
     );
 
     state.wheelMomentum += e.deltaY;
+    state.wheelMomentum *= 1.1;
     state.mouseX = e.clientX;
 
     if (shouldRefreshChart) {

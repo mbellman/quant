@@ -2,7 +2,7 @@
   "compilerOptions": {
     "esModuleInterop": true,
     "outDir": "./dist/server/",
-    "resolveJsonModule": true
+    "target": "ES5"
   },
   "include": [
     "src/server/**/*"
