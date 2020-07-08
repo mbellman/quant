@@ -6,6 +6,7 @@ interface Point {
 interface Line {
   from: Point;
   to: Point;
+  width?: number;
 }
 
 interface Rect extends Point {

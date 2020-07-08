@@ -23,33 +23,21 @@ function getMomentumDeltas(momentum: number[]): number[] {
   return deltas;
 }
 
-export function predictReversals(momentum: number[]): [number[], number[]] {
+export function predictReversals({ shortMovingAverage, longMovingAverage, momentum }: BaseSymbolData): [number[], number[]] {
   const predictedPeaks: number[] = [];
   const predictedDips: number[] = [];
-  const momentumDeltas = getMomentumDeltas(momentum);
-  const reversalThreshold = 2;
-  let signal = 0;
 
-  for (let i = 1; i < momentumDeltas.length; i++) {
-    const current = momentumDeltas[i];
-    const previous = momentumDeltas[i - 1];
-    const isStrongTrend = Math.abs(current) / Math.abs(previous) > reversalThreshold;
+  for (let i = 10; i < shortMovingAverage.length - 1; i++) {
+    const previous = shortMovingAverage[i - 1] - longMovingAverage[i - 1];
+    const current = shortMovingAverage[i] - longMovingAverage[i];
+    const isMACross = (previous < 0 && current > 0) || (previous > 0 && current < 0);
+    const isBearish = momentum[i] < momentum[i - 10];
 
-    signal *= 0.9;
-
-    if (isStrongTrend) {
-      const isUpwardTrend = current >= 0;
-
-      signal += isUpwardTrend ? 1 : -1;
-
-      if (signal >= 2) {
-        predictedDips.push(i);
-
-        signal = 0;
-      } else if (signal <= -2) {
+    if (isMACross) {
+      if (longMovingAverage[i] > shortMovingAverage[i] && isBearish) {
         predictedPeaks.push(i);
-
-        signal = 0;
+      } else if (longMovingAverage[i] < shortMovingAverage[i] && !isBearish) {
+        predictedDips.push(i);
       }
     }
   }

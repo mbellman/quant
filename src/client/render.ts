@@ -251,7 +251,7 @@ function drawPredictions({ intervals, predictedDips, predictedPeaks }: SymbolDat
     canvas.setColor(Color.BLACK);
     canvas.circle({ x: point.x, y: point.y, radius: 8 });
     canvas.setColor(Color.RED);
-    canvas.line({ from: point, to: { x: point.x + lineLength, y: point.y + lineLength } });
+    canvas.line({ from: point, to: { x: point.x + lineLength, y: point.y + lineLength }, width: 2 });
     canvas.setColor('#fa0');
     canvas.circle({ x: point.x, y: point.y, radius: 6 });
   }
@@ -275,7 +275,7 @@ function drawPredictions({ intervals, predictedDips, predictedPeaks }: SymbolDat
     canvas.setColor(Color.BLACK);
     canvas.circle({ x: point.x, y: point.y, radius: 8 });
     canvas.setColor(Color.GREEN);
-    canvas.line({ from: point, to: { x: point.x + lineLength, y: point.y - lineLength } });
+    canvas.line({ from: point, to: { x: point.x + lineLength, y: point.y - lineLength }, width: 2 });
     canvas.setColor('#0fa');
     canvas.circle({ x: point.x, y: point.y, radius: 6 });
   }
