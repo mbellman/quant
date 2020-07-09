@@ -42,8 +42,8 @@ export default class AlphaVantageStockService extends AbstractStockService {
 
   private transform(response: AlphaVantageResponse): SymbolData {
     const interval = response['Meta Data']['4. Interval'] || 'Daily';
-    const intervals = this.createIntervals(response[`Time Series (${interval})`]);
     const isIntraday = response['Meta Data']['1. Information'].includes('Intraday');
+    const intervals = this.createIntervals(response[`Time Series (${interval})`], isIntraday);
     const momentum = getMomentum(intervals);
 
     const data: BaseSymbolData = {
@@ -66,8 +66,8 @@ export default class AlphaVantageStockService extends AbstractStockService {
     };
   }
 
-  private createIntervals(shares: AlphaVantageShareDataSet): Interval[] {
-    return Object.keys(shares).map(key => {
+  private createIntervals(shares: AlphaVantageShareDataSet, shouldFilterOffHours: boolean): Interval[] {
+    const intervals = Object.keys(shares).map(key => {
       const shareData = shares[key];
       const adjustedClose = parseFloat(shareData['5. adjusted close'] || shareData['4. close']);
       const adjustmentFactor = adjustedClose / parseFloat(shareData['4. close']);
@@ -81,6 +81,19 @@ export default class AlphaVantageStockService extends AbstractStockService {
         volume: parseFloat(shareData['5. volume'] || shareData['6. volume'])
       };
     }).reverse();
+
+    if (shouldFilterOffHours) {
+      return intervals.filter(({ time }) => {
+        const date = new Date(time);
+        const hour = date.getHours();
+        const minute = date.getMinutes();
+        const t = parseFloat(`${hour}.${minute < 10 ? '0' : ''}${minute}`);
+
+        return t >= 9.31 && t <= 16;
+      });
+    } else {
+      return intervals;
+    }
   }
 
   private createRequestParams(symbol: string, type: 'daily' | 'intraday'): any {

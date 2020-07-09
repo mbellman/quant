@@ -24,6 +24,15 @@ module.exports = {
 
         res.send(data);
       });
+
+      app.get('/api/random', async (req, res) => {
+        clearModuleCache();
+
+        const { getRandomDay } = require('./dist/server');
+        const data = await getRandomDay();
+
+        res.send(data);
+      });
     }
   },
   module: {

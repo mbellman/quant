@@ -27,12 +27,24 @@ async function main() {
     isViewingHistory: true
   };
 
-  async function getSymbolData(symbol: string, type: 'daily' | 'intraday'): Promise<SymbolData> {
+  async function load<T>(loadable: () => Promise<T>): Promise<T> {
     (document.querySelector('.loader-overlay') as HTMLElement).style.display = 'block';
 
-    const { data } = await axios.get(`/api/${symbol}/${type}`);
+    const data = await loadable();
 
     (document.querySelector('.loader-overlay') as HTMLElement).style.display = 'none';
+
+    return data;
+  }
+
+  async function getSymbolData(symbol: string, type: 'daily' | 'intraday'): Promise<SymbolData> {
+    const { data } = await load(() => axios.get(`/api/${symbol}/${type}`));
+
+    return data;
+  }
+
+  async function getRandomDay(): Promise<SymbolData> {
+    const { data } = await load(() => axios.get('/api/random'));
 
     return data;
   }
@@ -193,7 +205,7 @@ async function main() {
   });
 
   document.querySelector('#day-trading-practice-button').addEventListener('click', async () => {
-    const data = await getSymbolData(getCurrentSymbol(), 'intraday');
+    const data = await getRandomDay();
 
     state.wheelMomentum = 0;
     state.dragMomentum = 0;
