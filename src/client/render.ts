@@ -402,7 +402,8 @@ export function plotDailyComposite({ intervals }: SymbolData): void {
   function plotAverageDay(): void {
     const averages: number[] = [];
     const dayKeys = Object.keys(dayGroupedIntervals);
-    const INTERVALS_PER_DAY = 78;
+    const dayGroups = dayKeys.map(key => dayGroupedIntervals[key]);
+    const INTERVALS_PER_DAY = Math.max(...dayGroups.map(group => group.length));
     const scale = 0.5;
 
     function getAverage(numbers: number[]) {
@@ -413,9 +414,10 @@ export function plotDailyComposite({ intervals }: SymbolData): void {
       const compositedValues: number[] = [];
 
       for (const key of dayKeys) {
-        const interval: Interval = dayGroupedIntervals[key][i];
+        const intervals: Interval[] = dayGroupedIntervals[key];
+        const interval: Interval = intervals[i] || intervals[intervals.length - 1];
 
-        compositedValues.push(interval?.open || compositedValues[compositedValues.length - 1]);
+        compositedValues.push(interval.open);
       }
 
       averages.push(getAverage(compositedValues));
@@ -452,5 +454,31 @@ export function plotDailyComposite({ intervals }: SymbolData): void {
   Object.keys(dayGroupedIntervals).forEach(key => plotSingleDay(dayGroupedIntervals[key]));
 
   plotAverageDay();
+  canvas.render();
+}
+
+export function plotPartialDay({ intervals }: SymbolData, indexLimit: number): void {
+  const high = Math.max(...intervals.map(({ high }) => high));
+  const low = Math.min(...intervals.map(({ low }) => low));
+  const dx = canvas.width / intervals.length;
+  const dy = canvas.height / (high - low);
+
+  canvas.clear(Color.BACKGROUND);
+
+  for (let i = 0; i < indexLimit; i++) {
+    const interval = intervals[i];
+    const topY = dy * (high - interval.high);
+    const bottomY = dy * (high - interval.low);
+
+    const bounds: Rect = {
+      x: dx * i,
+      y: topY,
+      width: dx,
+      height: bottomY - topY
+    };
+
+    drawCandlestick(interval, bounds, /* shouldShowCandle */ true);
+  }
+
   canvas.render();
 }

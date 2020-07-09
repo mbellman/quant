@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { plotData, plotDailyComposite } from './render';
+import { plotData, plotDailyComposite, plotPartialDay } from './render';
 import { SymbolData } from '../server/types';
 
 interface State {
@@ -10,7 +10,7 @@ interface State {
   rightCutoff: number;
   wheelMomentum: number;
   dragMomentum: number;
-  isViewingComposite: boolean;
+  isViewingHistory: boolean;
 }
 
 async function main() {
@@ -24,7 +24,7 @@ async function main() {
     rightCutoff: 0,
     wheelMomentum: 0,
     dragMomentum: 0,
-    isViewingComposite: false
+    isViewingHistory: true
   };
 
   async function getSymbolData(symbol: string, type: 'daily' | 'intraday'): Promise<SymbolData> {
@@ -47,7 +47,7 @@ async function main() {
     state.rightCutoff = 0;
     state.wheelMomentum = 0;
     state.dragMomentum = 0;
-    state.isViewingComposite = false;
+    state.isViewingHistory = true;
   
     plotData(data);
   }
@@ -110,7 +110,7 @@ async function main() {
   }
 
   document.addEventListener('wheel', e => {
-    if (state.isViewingComposite) {
+    if (!state.isViewingHistory) {
       return;
     }
 
@@ -129,7 +129,7 @@ async function main() {
   });
 
   document.addEventListener('mousemove', e => {
-    if (state.isViewingComposite) {
+    if (!state.isViewingHistory) {
       return;
     }
 
@@ -143,7 +143,7 @@ async function main() {
   });
 
   document.addEventListener('mousedown', (e: MouseEvent) => {
-    if (state.isViewingComposite) {
+    if (!state.isViewingHistory) {
       return;
     }
 
@@ -187,9 +187,19 @@ async function main() {
 
     state.wheelMomentum = 0;
     state.dragMomentum = 0;
-    state.isViewingComposite = true;
+    state.isViewingHistory = false;
 
     plotDailyComposite(data);
+  });
+
+  document.querySelector('#day-trading-practice-button').addEventListener('click', async () => {
+    const data = await getSymbolData(getCurrentSymbol(), 'intraday');
+
+    state.wheelMomentum = 0;
+    state.dragMomentum = 0;
+    state.isViewingHistory = false;
+
+    plotPartialDay(data, data.intervals.length);
   });
 }
 

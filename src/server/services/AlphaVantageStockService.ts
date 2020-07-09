@@ -99,7 +99,7 @@ export default class AlphaVantageStockService extends AbstractStockService {
       return {
         ...baseParams,
         function: 'TIME_SERIES_INTRADAY',
-        interval: '5min'
+        interval: '1min'
       };
     }
   }
