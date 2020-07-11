@@ -1,9 +1,6 @@
-import { fetchSymbolData, fetchRandomDay } from './api';
+import { fetchEnhancedSymbolData, fetchRandomDay } from './api';
 import { plotData, plotDailyComposite, plotPartialDay } from './render';
 import { IntervalType, SymbolData, EnhancedSymbolData } from '../server/types';
-import { getMomentum } from './technicals/momentum';
-import { getMovingAverage } from './technicals/average';
-import { getPeaks, getDips } from './technicals/extremes';
 
 interface State {
   data: EnhancedSymbolData;
@@ -37,28 +34,18 @@ async function load<T>(loadable: () => Promise<T>): Promise<T> {
   return data;
 }
 
-async function loadSymbolData(symbol: string, type: IntervalType): Promise<EnhancedSymbolData> {
-  const data = await load(() => fetchSymbolData(symbol, type));
-  const { intervals } = data;
-
-  return {
-    ...data,
-    momentum: getMomentum(intervals),
-    shortMovingAverage: getMovingAverage(intervals, 10),
-    longMovingAverage: getMovingAverage(intervals, 20),
-    peaks: getPeaks(intervals),
-    dips: getDips(intervals)
-  };
+function loadEnhancedSymbolData(symbol: string, type: IntervalType): Promise<EnhancedSymbolData> {
+  return load(() => fetchEnhancedSymbolData(symbol, type));
 }
 
 function loadRandomDay(): Promise<SymbolData> {
   return load(() => fetchRandomDay());
 }
 
-async function showSymbolData(symbol: string, type: IntervalType): Promise<void> {
+async function showEnhancedSymbolData(symbol: string, type: IntervalType): Promise<void> {
   (document.querySelector('#symbol') as HTMLInputElement).value = symbol;
 
-  const data = await loadSymbolData(symbol, type);
+  const data = await loadEnhancedSymbolData(symbol, type);
 
   state.data = data;
   state.leftCutoff = 0;
@@ -194,15 +181,15 @@ function bindEvents(): void {
   });
 
   document.querySelector('#daily-button').addEventListener('click', () => {
-    showSymbolData(getCurrentSymbol(), IntervalType.DAILY);
+    showEnhancedSymbolData(getCurrentSymbol(), IntervalType.DAILY);
   });
 
   document.querySelector('#intraday-button').addEventListener('click', () => {
-    showSymbolData(getCurrentSymbol(), IntervalType.INTRADAY);
+    showEnhancedSymbolData(getCurrentSymbol(), IntervalType.INTRADAY);
   });
 
   document.querySelector('#daily-composite-button').addEventListener('click', async () => {
-    const data = await loadSymbolData(getCurrentSymbol(), IntervalType.INTRADAY);
+    const data = await loadEnhancedSymbolData(getCurrentSymbol(), IntervalType.INTRADAY);
 
     state.wheelMomentum = 0;
     state.dragMomentum = 0;
@@ -224,5 +211,5 @@ function bindEvents(): void {
 
 export function initialize(): void {
   bindEvents();
-  showSymbolData('SPY', IntervalType.INTRADAY);
+  showEnhancedSymbolData('SPY', IntervalType.INTRADAY);
 }
