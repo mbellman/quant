@@ -1,16 +1,11 @@
 export const enum IntervalType {
-  INTRADAY,
-  DAILY
+  INTRADAY = 'intraday',
+  DAILY = 'daily'
 }
 
 export const enum PriceTrend {
   UPWARD,
-  UPWARD_SPIKE,
-  UPWARD_REVERSAL,
-  DOWNWARD,
-  DOWNWARD_SPIKE,
-  DOWNWARD_REVERSAL,
-  FLAT
+  DOWNWARD
 }
 
 export interface Interval {
@@ -22,25 +17,23 @@ export interface Interval {
   volume: number;
 }
 
-export interface BaseSymbolData {
+export interface SymbolData {
   symbol: string;
   type: IntervalType;
   intervals: Interval[];
+}
+
+export interface EnhancedSymbolData extends SymbolData {
+  momentum: number[];
   shortMovingAverage: number[];
   longMovingAverage: number[];
   peaks: number[];
   dips: number[];
-  momentum: number[];
-}
-
-export interface SymbolData extends BaseSymbolData {
-  predictedPeaks: number[];
-  predictedDips: number[];
 }
 
 export type IntervalPredicate = (a: Interval, b: Interval) => boolean;
 
 export interface SymbolDataRequest {
   symbol: string;
-  type: 'daily' | 'intraday';
+  type: IntervalType;
 }

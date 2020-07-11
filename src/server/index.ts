@@ -21,11 +21,14 @@ export async function getRandomDay(): Promise<SymbolData> {
     'SQ',
     'TWTR',
     'SPY',
-    'TSLA'
+    'TSLA',
+    'NVDA',
+    'FSLY',
+    'ROKU'
   ];
 
   const symbol = randomFrom(symbols);
-  const data = await service.handle({ symbol, type: 'intraday' });
+  const data = await service.handle({ symbol, type: IntervalType.INTRADAY });
   const dayGroupedIntervals: Record<string, Interval[]> = {};
 
   for (const interval of data.intervals) {
@@ -42,5 +45,9 @@ export async function getRandomDay(): Promise<SymbolData> {
   const dayGroups = Object.keys(dayGroupedIntervals).map(key => dayGroupedIntervals[key]);
   const intervals = randomFrom(dayGroups);
 
-  return { intervals } as SymbolData;
+  return {
+    symbol,
+    intervals,
+    type: IntervalType.INTRADAY
+  };
 }

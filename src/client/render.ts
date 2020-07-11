@@ -1,4 +1,4 @@
-import { SymbolData, Interval, IntervalType, IntervalPredicate } from '../server/types';
+import { SymbolData, Interval, IntervalType, IntervalPredicate, EnhancedSymbolData } from '../server/types';
 import Canvas from './Canvas';
 
 interface Point {
@@ -156,7 +156,7 @@ function drawIntervals({ intervals }: SymbolData, scale: number = 1.0, mouseY: n
   canvas.setAlpha(1.0);
 }
 
-function drawMovingAverages({ intervals, shortMovingAverage, longMovingAverage }: SymbolData, scale: number = 1.0): void {
+function drawMovingAverages({ intervals, shortMovingAverage, longMovingAverage }: EnhancedSymbolData, scale: number = 1.0): void {
   const { high, low } = getRange(intervals);
   const dx = canvas.width / intervals.length;
   const dy = canvas.height / (high - low) * scale;
@@ -181,7 +181,7 @@ function drawMovingAverages({ intervals, shortMovingAverage, longMovingAverage }
   drawMovingAverage(longMovingAverage, '#ff0');
 }
 
-function drawReversals({ intervals, peaks, dips }: SymbolData, scale: number = 1.0, leftCutoff: number = 0): void {
+function drawReversals({ intervals, peaks, dips }: EnhancedSymbolData, scale: number = 1.0, leftCutoff: number = 0): void {
   const { high, low } = getRange(intervals);
   const dx = canvas.width / intervals.length;
   const dy = canvas.height / (high - low) * scale;
@@ -222,61 +222,6 @@ function drawReversals({ intervals, peaks, dips }: SymbolData, scale: number = 1
     canvas.setColor(Color.BLACK);
     canvas.circle({ x: point.x, y: point.y, radius: 8 });
     canvas.setColor(Color.RED);
-    canvas.circle({ x: point.x, y: point.y, radius: 6 });
-  }
-}
-
-function drawPredictions({ intervals, predictedDips, predictedPeaks }: SymbolData, scale: number = 1.0, leftCutoff: number = 0): void {
-  const { high, low } = getRange(intervals);
-  const dx = canvas.width / intervals.length;
-  const dy = canvas.height / (high - low) * scale;
-  const offset = canvas.height * (1 - scale) * 0.5;
-  const lineLength = 50;
-
-  for (const peak of predictedPeaks) {
-    const index = peak - leftCutoff;
-    const interval = intervals[index];
-
-    if (!interval) {
-      continue;
-    }
-
-    const average = (interval.high + interval.low) / 2;
-
-    const point: Point = {
-      x: index * dx + dx / 2,
-      y: (high - average) * dy + offset
-    };
-
-    canvas.setColor(Color.BLACK);
-    canvas.circle({ x: point.x, y: point.y, radius: 8 });
-    canvas.setColor(Color.RED);
-    canvas.line({ from: point, to: { x: point.x + lineLength, y: point.y + lineLength }, width: 2 });
-    canvas.setColor('#fa0');
-    canvas.circle({ x: point.x, y: point.y, radius: 6 });
-  }
-
-  for (const dip of predictedDips) {
-    const index = dip - leftCutoff;
-    const interval = intervals[index];
-
-    if (!interval) {
-      continue;
-    }
-
-    const average = (interval.high + interval.low) / 2;
-
-    const point: Point = {
-      x: index * dx + dx / 2,
-      y: (high - average) * dy + offset
-    };
-
-
-    canvas.setColor(Color.BLACK);
-    canvas.circle({ x: point.x, y: point.y, radius: 8 });
-    canvas.setColor(Color.GREEN);
-    canvas.line({ from: point, to: { x: point.x + lineLength, y: point.y - lineLength }, width: 2 });
-    canvas.setColor('#0fa');
     canvas.circle({ x: point.x, y: point.y, radius: 6 });
   }
 }
@@ -346,19 +291,20 @@ function drawDollarValues({ intervals }: SymbolData, scale: number, mouseY: numb
   canvas.text(font, Color.WHITE, getDollarValue(mouseYPrice), { x: 10, y: mouseYRatio * canvas.height + 6 });
 }
 
-export function plotData(data: SymbolData, leftCutoff: number = 0, rightCutoff: number = 0, mouseY: number = 0): void {
+export function plotData(data: EnhancedSymbolData, leftCutoff: number = 0, rightCutoff: number = 0, mouseY: number = 0): void {
   canvas.clear(Color.BACKGROUND);
 
+  const { intervals, momentum, shortMovingAverage, longMovingAverage } = data;
   const scale = 0.9;
   const start = leftCutoff;
-  const end = data.intervals.length - rightCutoff;
+  const end = intervals.length - rightCutoff;
 
   const visibleData = {
     ...data,
-    momentum: data.momentum.slice(start, end),
-    intervals: data.intervals.slice(start, end),
-    shortMovingAverage: data.shortMovingAverage.slice(start, end),
-    longMovingAverage: data.longMovingAverage.slice(start, end)
+    momentum: momentum.slice(start, end),
+    intervals: intervals.slice(start, end),
+    shortMovingAverage: shortMovingAverage.slice(start, end),
+    longMovingAverage: longMovingAverage.slice(start, end)
   };
 
   drawGridLines(visibleData, scale, mouseY);
@@ -366,7 +312,6 @@ export function plotData(data: SymbolData, leftCutoff: number = 0, rightCutoff: 
   drawIntervals(visibleData, scale, mouseY);
   drawMovingAverages(visibleData, scale);
   drawReversals(visibleData, scale, leftCutoff);
-  drawPredictions(visibleData, scale, leftCutoff);
   drawMomentum(visibleData.momentum);
   drawDollarValues(visibleData, scale, mouseY);
 
