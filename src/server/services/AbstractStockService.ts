@@ -1,4 +1,4 @@
-import { SymbolDataRequest, SymbolData, IntervalType } from '../types';
+import { SymbolDataRequest, SymbolData, IntervalType } from '../../types';
 
 export default abstract class AbstractStockService {
   private store: Record<string, SymbolData> = {};

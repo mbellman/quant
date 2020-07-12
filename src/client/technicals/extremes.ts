@@ -1,4 +1,4 @@
-import { Interval, IntervalPredicate } from '../../server/types';
+import { Interval, IntervalPredicate } from '../../types';
 
 function isReversal(intervals: Interval[], index: number, predicate: IntervalPredicate): boolean {
   const interval = intervals[index];

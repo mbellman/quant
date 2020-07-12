@@ -15,6 +15,8 @@ export interface Interval {
   low: number;
   close: number;
   volume: number;
+  next?: Interval;
+  previous?: Interval;
 }
 
 export interface SymbolData {
@@ -36,4 +38,19 @@ export type IntervalPredicate = (a: Interval, b: Interval) => boolean;
 export interface SymbolDataRequest {
   symbol: string;
   type: IntervalType;
+}
+
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface Rect extends Point {
+  width: number;
+  height: number;
+}
+
+export interface Range {
+  high: number;
+  low: number;
 }

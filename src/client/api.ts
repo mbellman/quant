@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { IntervalType, SymbolData, EnhancedSymbolData } from '../server/types';
+import { IntervalType, SymbolData, EnhancedSymbolData } from '../types';
 import { getMomentum } from './technicals/momentum';
 import { getMovingAverage } from './technicals/average';
 import { getPeaks, getDips } from './technicals/extremes';

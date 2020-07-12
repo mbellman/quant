@@ -1,5 +1,5 @@
 import AlphaVantageStockService from './services/AlphaVantageStockService';
-import { SymbolData, SymbolDataRequest, Interval, IntervalType } from './types';
+import { SymbolData, SymbolDataRequest, Interval, IntervalType } from '../types';
 
 const service = new AlphaVantageStockService();
 

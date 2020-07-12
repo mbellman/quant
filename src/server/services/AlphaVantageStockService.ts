@@ -1,6 +1,6 @@
 import axios from 'axios';
 import AbstractStockService from './AbstractStockService';
-import { IntervalType, Interval, SymbolData } from '../types';
+import { IntervalType, Interval, SymbolData } from '../../types';
 
 type AlphaVantageIntervalData = {
   '1. open': string;

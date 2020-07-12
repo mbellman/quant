@@ -1,4 +1,4 @@
-import { Interval } from '../../server/types';
+import { Interval } from '../../types';
 
 export function getMomentum(intervals: Interval[]): number[] {
   const momentum: number[] = [];

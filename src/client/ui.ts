@@ -1,6 +1,7 @@
 import { fetchEnhancedSymbolData, fetchRandomDay } from './api';
 import { plotData, plotDailyComposite, plotPartialDay } from './render';
-import { IntervalType, SymbolData, EnhancedSymbolData } from '../server/types';
+import { IntervalType, SymbolData, EnhancedSymbolData } from '../types';
+import { linkIntervals } from './utilities';
 
 interface State {
   data: EnhancedSymbolData;
@@ -46,6 +47,8 @@ async function showEnhancedSymbolData(symbol: string, type: IntervalType): Promi
   (document.querySelector('#symbol') as HTMLInputElement).value = symbol;
 
   const data = await loadEnhancedSymbolData(symbol, type);
+
+  linkIntervals(data.intervals);
 
   state.data = data;
   state.leftCutoff = 0;
@@ -201,6 +204,8 @@ function bindEvents(): void {
 
   document.querySelector('#day-trading-practice-button').addEventListener('click', async () => {
     const data = await loadRandomDay();
+
+    linkIntervals(data.intervals);
 
     state.wheelMomentum = 0;
     state.dragMomentum = 0;

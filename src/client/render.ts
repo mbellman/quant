@@ -1,20 +1,6 @@
-import { SymbolData, Interval, IntervalType, IntervalPredicate, EnhancedSymbolData } from '../server/types';
 import Canvas from './Canvas';
-
-interface Point {
-  x: number;
-  y: number;
-}
-
-interface Rect extends Point {
-  width: number;
-  height: number;
-}
-
-interface Range {
-  high: number;
-  low: number;
-}
+import { SymbolData, Interval, IntervalType, IntervalPredicate, EnhancedSymbolData, Point, Rect, Range } from '../types';
+import { renderIntervalLine, renderCandlestick, renderVolumeWeightedCandlestick } from './patterns';
 
 const canvas = new Canvas(document.querySelector('canvas'));
 
@@ -61,32 +47,6 @@ function isLaterDay(a: Date, b: Date): boolean {
   );
 }
 
-function drawCandlestick({ open, close, high, low }: Interval, bounds: Rect, shouldShowCandle: boolean): void {
-  const dy = bounds.height / (high - low);
-  const isGreen = close > open;
-  const color = isGreen ? Color.GREEN : Color.RED;
-  const candleTop = isGreen ? close : open;
-  const candleBottom = isGreen ? open : close;
-  const topWickHeight = (high - candleTop) * dy;
-  const bottomWickHeight = (candleBottom - low) * dy;
-
-  canvas.setColor(color);
-
-  if (shouldShowCandle) {
-    canvas.rect({
-      x: bounds.x,
-      y: bounds.y + topWickHeight,
-      width: bounds.width,
-      height: Math.max(bounds.height - topWickHeight - bottomWickHeight, 1)
-    });
-  }
-
-  canvas.line({
-    from: { x: bounds.x + bounds.width / 2, y: bounds.y },
-    to: { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height }
-  });
-}
-
 function drawGridLines({ intervals, type }: SymbolData, scale: number = 1.0, mouseX: number, mouseY: number): void {
   const dx = canvas.width / intervals.length;
   const offset = canvas.height * (1 - scale) * 0.5;
@@ -126,6 +86,7 @@ function drawIntervals(intervals: Interval[], scale: number = 1.0): void {
   const dy = canvas.height / (high - low) * scale;
   const offset = canvas.height * (1 - scale) * 0.5;
   const step = Math.max(intervals.length / canvas.width, 1);
+  const render = step === 1 ? renderVolumeWeightedCandlestick : renderIntervalLine;
 
   if (step > 2) {
     return;
@@ -145,7 +106,7 @@ function drawIntervals(intervals: Interval[], scale: number = 1.0): void {
       height
     };
 
-    drawCandlestick(interval, bounds, /* shouldShowCandle */ step === 1);
+    render(canvas, interval, bounds);
   }
 
   canvas.setAlpha(1.0);
@@ -182,43 +143,29 @@ function drawReversals({ intervals, peaks, dips }: EnhancedSymbolData, scale: nu
   const dy = canvas.height / (high - low) * scale;
   const offset = canvas.height * (1 - scale) * 0.5;
 
-  for (const peak of peaks) {
-    const index = peak - leftCutoff;
-    const interval = intervals[index];
-
-    if (!interval) {
-      continue;
+  function plotReversals(reversals: number[], color: string, offsetDeterminant: (interval: Interval) => number): void {
+    for (const reversal of reversals) {
+      const index = reversal - leftCutoff;
+      const interval = intervals[index];
+  
+      if (!interval) {
+        continue;
+      }
+  
+      const point: Point = {
+        x: index * dx + dx / 2,
+        y: offsetDeterminant(interval)
+      };
+  
+      canvas.setColor(Color.BLACK);
+      canvas.circle({ x: point.x, y: point.y, radius: 8 });
+      canvas.setColor(color);
+      canvas.circle({ x: point.x, y: point.y, radius: 6 });
     }
-
-    const point: Point = {
-      x: index * dx + dx / 2,
-      y: (high - interval.high) * dy + offset
-    };
-
-    canvas.setColor(Color.BLACK);
-    canvas.circle({ x: point.x, y: point.y, radius: 8 });
-    canvas.setColor(Color.GREEN);
-    canvas.circle({ x: point.x, y: point.y, radius: 6 });
   }
 
-  for (const dip of dips) {
-    const index = dip - leftCutoff;
-    const interval = intervals[index];
-
-    if (!interval) {
-      continue;
-    }
-
-    const point: Point = {
-      x: index * dx + dx / 2,
-      y: (high - interval.low) * dy + offset
-    };
-
-    canvas.setColor(Color.BLACK);
-    canvas.circle({ x: point.x, y: point.y, radius: 8 });
-    canvas.setColor(Color.RED);
-    canvas.circle({ x: point.x, y: point.y, radius: 6 });
-  }
+  plotReversals(peaks, Color.GREEN, interval => (high - interval.high) * dy + offset - 10);
+  plotReversals(dips, Color.RED, interval => (high - interval.low) * dy + offset + 10);
 }
 
 function drawVolume(intervals: Interval[]): void {
@@ -277,18 +224,20 @@ function drawDollarValues({ intervals }: SymbolData, scale: number, mouseX: numb
   const properLow = median - (median - low) / scale;
   const mouseXRatio = (mouseX - canvas.bounds.left) / canvas.width;
   const mouseXIntervalIndex = Math.floor(intervals.length * mouseXRatio);
-  const mouseXInterval = intervals[mouseXIntervalIndex];
+  const mouseXInterval = intervals[mouseXIntervalIndex] || intervals[0];
   const mouseXPrice = (mouseXInterval.high + mouseXInterval.low) / 2;
   const mouseYRatio = (mouseY - canvas.bounds.top) / canvas.height;
   const mouseYPrice = Math.max(properLow + (properHigh - properLow) * (1 - mouseYRatio), 0);
+  const mouseXTime = new Date(mouseXInterval.time).toLocaleString();
 
-  const font = '16px Arial';
+  const font16 = '16px Arial';
+  const font14 = '14px Arial';
 
-  canvas.text(font, Color.WHITE, getDollarValue(high), { x: 10, y: offset + 6 });
-  canvas.text(font, Color.WHITE, getDollarValue(median), { x: 10, y: canvas.height / 2 + 6 });
-  canvas.text(font, Color.WHITE, getDollarValue(low), { x: 10, y: canvas.height - offset + 6 });
-  canvas.text(font, Color.WHITE, getDollarValue(mouseXPrice), { x: mouseXRatio * canvas.width + 6, y: offset + 6 });
-  canvas.text(font, Color.WHITE, getDollarValue(mouseYPrice), { x: 10, y: mouseYRatio * canvas.height + 6 });
+  canvas.text(font16, Color.WHITE, getDollarValue(high), { x: 10, y: offset + 6 });
+  canvas.text(font16, Color.WHITE, getDollarValue(median), { x: 10, y: canvas.height / 2 + 6 });
+  canvas.text(font16, Color.WHITE, getDollarValue(low), { x: 10, y: canvas.height - offset + 6 });
+  canvas.text(font14, Color.WHITE, `${getDollarValue(mouseXPrice)} (${mouseXTime})`, { x: mouseXRatio * canvas.width + 6, y: offset + 5 });
+  canvas.text(font14, Color.WHITE, getDollarValue(mouseYPrice), { x: 10, y: mouseYRatio * canvas.height + 5 });
 }
 
 export function plotData(data: EnhancedSymbolData, leftCutoff: number = 0, rightCutoff: number = 0, mouseX: number = 0, mouseY: number = 0): void {
@@ -403,28 +352,9 @@ export function plotDailyComposite({ intervals }: SymbolData): void {
 }
 
 export function plotPartialDay({ intervals }: SymbolData, indexLimit: number): void {
-  const visibleIntervals = intervals.slice(0, indexLimit);
-  const high = Math.max(...visibleIntervals.map(({ high }) => high));
-  const low = Math.min(...visibleIntervals.map(({ low }) => low));
-  const dx = canvas.width / intervals.length;
-  const dy = canvas.height / (high - low);
-
   canvas.clear(Color.BACKGROUND);
 
-  for (let i = 0; i < indexLimit; i++) {
-    const interval = intervals[i];
-    const topY = dy * (high - interval.high);
-    const bottomY = dy * (high - interval.low);
-
-    const bounds: Rect = {
-      x: dx * i,
-      y: topY,
-      width: dx,
-      height: bottomY - topY
-    };
-
-    drawCandlestick(interval, bounds, /* shouldShowCandle */ true);
-  }
+  drawIntervals(intervals.slice(0, indexLimit), 0.8);
 
   canvas.render();
 }

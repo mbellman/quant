@@ -1,4 +1,4 @@
-import { Interval } from '../../server/types';
+import { Interval } from '../../types';
 import { getAverage } from '../utilities';
 
 export function getMovingAverage(intervals: Interval[], limit: number): number[] {
