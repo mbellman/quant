@@ -110,7 +110,7 @@ function refreshChart(): void {
     return;
   }
 
-  plotData(state.data, state.leftCutoff, state.rightCutoff, state.mouseY);
+  plotData(state.data, state.leftCutoff, state.rightCutoff, state.mouseX, state.mouseY);
   requestAnimationFrame(refreshChart);
 }
 
@@ -141,10 +141,11 @@ function bindEvents(): void {
 
     const isRefreshing = state.wheelMomentum !== 0 || state.dragMomentum !== 0;
 
+    state.mouseX = e.clientX;
     state.mouseY = e.clientY;
 
     if (!isRefreshing) {
-      plotData(state.data, state.leftCutoff, state.rightCutoff, state.mouseY);
+      plotData(state.data, state.leftCutoff, state.rightCutoff, state.mouseX, state.mouseY);
     }
   });
 

@@ -87,7 +87,7 @@ function drawCandlestick({ open, close, high, low }: Interval, bounds: Rect, sho
   });
 }
 
-function drawGridLines({ intervals, type }: SymbolData, scale: number = 1.0, mouseY: number): void {
+function drawGridLines({ intervals, type }: SymbolData, scale: number = 1.0, mouseX: number, mouseY: number): void {
   const dx = canvas.width / intervals.length;
   const offset = canvas.height * (1 - scale) * 0.5;
   const canvasMouseY = mouseY - canvas.bounds.top;
@@ -101,6 +101,7 @@ function drawGridLines({ intervals, type }: SymbolData, scale: number = 1.0, mou
     : ({ time }: Interval) => `${new Date(time).getFullYear()}`;
 
   canvas.setColor('#666');
+  canvas.line({ from: { x: mouseX - canvas.bounds.left, y: 0 }, to: { x: mouseX - canvas.bounds.left, y: canvas.height } });
   canvas.line({ from: { x: 0, y: canvasMouseY }, to: { x: canvas.width, y: canvasMouseY } });
 
   canvas.setColor(Color.GRID_LINE);
@@ -119,13 +120,12 @@ function drawGridLines({ intervals, type }: SymbolData, scale: number = 1.0, mou
   }
 }
 
-function drawIntervals({ intervals }: SymbolData, scale: number = 1.0, mouseY: number): void {
+function drawIntervals(intervals: Interval[], scale: number = 1.0): void {
   const { high, low } = getRange(intervals);
   const dx = canvas.width / intervals.length;
   const dy = canvas.height / (high - low) * scale;
   const offset = canvas.height * (1 - scale) * 0.5;
   const step = Math.max(intervals.length / canvas.width, 1);
-  const canvasMouseY = mouseY - canvas.bounds.top;
 
   if (step > 2) {
     return;
@@ -146,11 +146,6 @@ function drawIntervals({ intervals }: SymbolData, scale: number = 1.0, mouseY: n
     };
 
     drawCandlestick(interval, bounds, /* shouldShowCandle */ step === 1);
-
-    if (y < canvasMouseY && y + height > canvasMouseY) {
-      canvas.setColor(Color.WHITE);
-      canvas.line({ from: { x: bounds.x, y: canvasMouseY }, to: { x: bounds.x + bounds.width, y: canvasMouseY } });
-    }
   }
 
   canvas.setAlpha(1.0);
@@ -274,12 +269,16 @@ function drawMomentum(momentum: number[]): void {
   canvas.multiline(points);
 }
 
-function drawDollarValues({ intervals }: SymbolData, scale: number, mouseY: number): void {
+function drawDollarValues({ intervals }: SymbolData, scale: number, mouseX: number, mouseY: number): void {
   const { high, low } = getRange(intervals);
   const offset = canvas.height * (1 - scale) * 0.5;
   const median = (high + low) / 2;
   const properHigh = median + (high - median) / scale;
   const properLow = median - (median - low) / scale;
+  const mouseXRatio = (mouseX - canvas.bounds.left) / canvas.width;
+  const mouseXIntervalIndex = Math.floor(intervals.length * mouseXRatio);
+  const mouseXInterval = intervals[mouseXIntervalIndex];
+  const mouseXPrice = (mouseXInterval.high + mouseXInterval.low) / 2;
   const mouseYRatio = (mouseY - canvas.bounds.top) / canvas.height;
   const mouseYPrice = Math.max(properLow + (properHigh - properLow) * (1 - mouseYRatio), 0);
 
@@ -288,10 +287,11 @@ function drawDollarValues({ intervals }: SymbolData, scale: number, mouseY: numb
   canvas.text(font, Color.WHITE, getDollarValue(high), { x: 10, y: offset + 6 });
   canvas.text(font, Color.WHITE, getDollarValue(median), { x: 10, y: canvas.height / 2 + 6 });
   canvas.text(font, Color.WHITE, getDollarValue(low), { x: 10, y: canvas.height - offset + 6 });
+  canvas.text(font, Color.WHITE, getDollarValue(mouseXPrice), { x: mouseXRatio * canvas.width + 6, y: offset + 6 });
   canvas.text(font, Color.WHITE, getDollarValue(mouseYPrice), { x: 10, y: mouseYRatio * canvas.height + 6 });
 }
 
-export function plotData(data: EnhancedSymbolData, leftCutoff: number = 0, rightCutoff: number = 0, mouseY: number = 0): void {
+export function plotData(data: EnhancedSymbolData, leftCutoff: number = 0, rightCutoff: number = 0, mouseX: number = 0, mouseY: number = 0): void {
   canvas.clear(Color.BACKGROUND);
 
   const { intervals, momentum, shortMovingAverage, longMovingAverage } = data;
@@ -307,13 +307,13 @@ export function plotData(data: EnhancedSymbolData, leftCutoff: number = 0, right
     longMovingAverage: longMovingAverage.slice(start, end)
   };
 
-  drawGridLines(visibleData, scale, mouseY);
+  drawGridLines(visibleData, scale, mouseX, mouseY);
   drawVolume(visibleData.intervals);
-  drawIntervals(visibleData, scale, mouseY);
+  drawIntervals(visibleData.intervals, scale);
   drawMovingAverages(visibleData, scale);
   drawReversals(visibleData, scale, leftCutoff);
   drawMomentum(visibleData.momentum);
-  drawDollarValues(visibleData, scale, mouseY);
+  drawDollarValues(visibleData, scale, mouseX, mouseY);
 
   canvas.render();
 }
@@ -403,8 +403,9 @@ export function plotDailyComposite({ intervals }: SymbolData): void {
 }
 
 export function plotPartialDay({ intervals }: SymbolData, indexLimit: number): void {
-  const high = Math.max(...intervals.map(({ high }) => high));
-  const low = Math.min(...intervals.map(({ low }) => low));
+  const visibleIntervals = intervals.slice(0, indexLimit);
+  const high = Math.max(...visibleIntervals.map(({ high }) => high));
+  const low = Math.min(...visibleIntervals.map(({ low }) => low));
   const dx = canvas.width / intervals.length;
   const dy = canvas.height / (high - low);
 
