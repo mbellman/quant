@@ -1,6 +1,7 @@
 import Canvas from './Canvas';
 import { SymbolData, Interval, IntervalType, IntervalPredicate, EnhancedSymbolData, Point, Rect, Range } from '../types';
 import { renderIntervalLine, renderCandlestick, renderVolumeWeightedCandlestick } from './patterns';
+import { getIntervalAverage } from './utilities';
 
 const canvas = new Canvas(document.querySelector('canvas'));
 
@@ -11,7 +12,8 @@ const Color = {
   GRID_LINE: '#222',
   MOMENTUM_LINE: '#a0f',
   WHITE: '#fff',
-  BLACK: '#000'
+  BLACK: '#000',
+  VWAP_LINE: '#f0a'
 };
 
 function getRange(intervals: Interval[]): Range {
@@ -196,6 +198,27 @@ function drawVolume(intervals: Interval[]): void {
   canvas.setAlpha(1.0);
 }
 
+function drawVwap({ intervals, vwap }: EnhancedSymbolData, scale: number = 1.0): void {
+  const { high, low } = getRange(intervals);
+  const dx = canvas.width / vwap.length;
+  const dy = canvas.height / (high - low) * scale;
+  const offset = canvas.height * (1 - scale) * 0.5;
+  const points: Point[] = [];
+
+  canvas.setColor(Color.VWAP_LINE);
+
+  for (let i = 0; i < vwap.length; i++) {
+    const p = vwap[i];
+
+    points.push({
+      x: i * dx + dx / 2,
+      y: (high - p) * dy + offset
+    });
+  }
+
+  canvas.multiline(points);
+}
+
 function drawMomentum(momentum: number[]): void {
   const height = 100;
   const high = Math.max(...momentum);
@@ -225,7 +248,7 @@ function drawDollarValues({ intervals }: SymbolData, scale: number, mouseX: numb
   const mouseXRatio = (mouseX - canvas.bounds.left) / canvas.width;
   const mouseXIntervalIndex = Math.floor(intervals.length * mouseXRatio);
   const mouseXInterval = intervals[mouseXIntervalIndex] || intervals[0];
-  const mouseXPrice = (mouseXInterval.high + mouseXInterval.low) / 2;
+  const mouseXPrice = getIntervalAverage(mouseXInterval);
   const mouseYRatio = (mouseY - canvas.bounds.top) / canvas.height;
   const mouseYPrice = Math.max(properLow + (properHigh - properLow) * (1 - mouseYRatio), 0);
   const mouseXTime = new Date(mouseXInterval.time).toLocaleString();
@@ -243,13 +266,14 @@ function drawDollarValues({ intervals }: SymbolData, scale: number, mouseX: numb
 export function plotData(data: EnhancedSymbolData, leftCutoff: number = 0, rightCutoff: number = 0, mouseX: number = 0, mouseY: number = 0): void {
   canvas.clear(Color.BACKGROUND);
 
-  const { intervals, momentum, shortMovingAverage, longMovingAverage } = data;
+  const { intervals, vwap, momentum, shortMovingAverage, longMovingAverage } = data;
   const scale = 0.9;
   const start = leftCutoff;
   const end = intervals.length - rightCutoff;
 
   const visibleData = {
     ...data,
+    vwap: vwap.slice(start, end),
     momentum: momentum.slice(start, end),
     intervals: intervals.slice(start, end),
     shortMovingAverage: shortMovingAverage.slice(start, end),
@@ -261,6 +285,7 @@ export function plotData(data: EnhancedSymbolData, leftCutoff: number = 0, right
   drawIntervals(visibleData.intervals, scale);
   drawMovingAverages(visibleData, scale);
   drawReversals(visibleData, scale, leftCutoff);
+  drawVwap(visibleData, scale);
   drawMomentum(visibleData.momentum);
   drawDollarValues(visibleData, scale, mouseX, mouseY);
 

@@ -1,7 +1,11 @@
-import { Interval } from "../types";
+import { Interval } from '../types';
 
 export function getAverage(numbers: number[]) {
   return numbers.reduce((total, n) => total + n, 0) / numbers.length;
+}
+
+export function getIntervalAverage({ open, high, low, close }: Interval): number {
+  return (open + high + low + close) / 4;
 }
 
 export function linkIntervals(intervals: Interval[]): void {

@@ -27,6 +27,7 @@ export interface SymbolData {
 
 export interface EnhancedSymbolData extends SymbolData {
   momentum: number[];
+  vwap: number[];
   shortMovingAverage: number[];
   longMovingAverage: number[];
   peaks: number[];

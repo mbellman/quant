@@ -2,6 +2,7 @@ import { fetchEnhancedSymbolData, fetchRandomDay } from './api';
 import { plotData, plotDailyComposite, plotPartialDay } from './render';
 import { IntervalType, SymbolData, EnhancedSymbolData } from '../types';
 import { linkIntervals } from './utilities';
+import { getHeikinAshiIntervals } from './technicals/heikin-ashi';
 
 interface State {
   data: EnhancedSymbolData;
