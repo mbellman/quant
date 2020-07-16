@@ -1,17 +1,18 @@
 import { fetchEnhancedSymbolData, fetchRandomDay } from './api';
 import { plotData, plotDailyComposite, plotPartialDay } from './render';
-import { IntervalType, SymbolData, EnhancedSymbolData } from '../types';
+import { IntervalType, SymbolData, EnhancedSymbolData, Interval } from '../types';
 import { linkIntervals } from './utilities';
 import { getHeikinAshiIntervals } from './technicals/heikin-ashi';
 import { getVolumeWeightedAveragePrice } from './technicals/vwap';
 
 interface DayTradingPracticeState {
-  index: number;
-  lastBuyPrice: number;
-  totalDelta: number;
+  intervals: Interval[];
+  step: number;
+  buyingPrice: number;
+  delta: number;
+  timer: number;
   isActive: boolean;
   isHolding: boolean;
-  interval: number;
 }
 
 interface State {
@@ -36,12 +37,13 @@ const state: State = {
   dragMomentum: 0,
   isViewingHistory: true,
   practice: {
-    index: 0,
-    lastBuyPrice: 0,
-    totalDelta: 0,
+    intervals: [],
+    step: 0,
+    buyingPrice: 0,
+    delta: 0,
+    timer: null,
     isActive: false,
     isHolding: false,
-    interval: null
   }
 };
 
@@ -143,29 +145,47 @@ function refreshChart(): void {
 
 function startDayTradingPractice({ intervals }: SymbolData): void {
   state.practice.isActive = true;
+  state.practice.intervals = intervals;
+  state.practice.step = 0;
 
   element('.day-trading-controls').style.display = 'inline-block';  
 
   const vwap = getVolumeWeightedAveragePrice(intervals);
-  let step = 1;
 
   function advanceSingleStep() {
-    plotPartialDay(intervals, vwap, step);
+    state.practice.step++;
 
-    step++;
+    plotPartialDay(intervals, vwap, state.practice.step);
+
+    if (state.practice.isHolding) {
+      element('#day-trading-delta').innerHTML = getDayTradingDelta().toString();
+    }
   }
 
   advanceSingleStep();
 
-  state.practice.interval = window.setInterval(advanceSingleStep, 2000);
+  state.practice.timer = window.setInterval(advanceSingleStep, 2000);
 }
 
 function stopDayTradingPractice(): void {
   state.practice.isActive = false;
 
-  window.clearInterval(state.practice.interval);
+  window.clearInterval(state.practice.timer);
 
   element('.day-trading-controls').style.display = 'none';
+}
+
+function getCurrentDayTradingPrice(): number {
+  const { practice: { intervals, step } } = state;
+  const { close } = intervals[step - 1];
+
+  return close;
+}
+
+function getDayTradingDelta(): number {
+  const delta = getCurrentDayTradingPrice() - state.practice.buyingPrice;
+
+  return Math.round(delta * 100) / 100;
 }
 
 function bindEvents(): void {
@@ -270,6 +290,21 @@ function bindEvents(): void {
     state.isViewingHistory = false;
 
     startDayTradingPractice(data);
+  });
+
+  element('#buy-button').addEventListener('click', () => {
+    if (state.practice.isHolding) {
+      return;
+    }
+
+    element('#day-trading-delta').innerHTML = '0';
+
+    state.practice.buyingPrice = getCurrentDayTradingPrice();
+    state.practice.isHolding = true;
+  });
+
+  element('#sell-button').addEventListener('click', () => {
+    state.practice.isHolding = false;
   });
 }
 
