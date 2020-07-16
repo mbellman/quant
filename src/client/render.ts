@@ -84,7 +84,7 @@ function drawGridLines({ intervals, type }: SymbolData, scale: number = 1.0, mou
 
 function drawIntervals(intervals: Interval[], scale: number = 1.0): void {
   const { high, low } = getRange(intervals);
-  const dx = canvas.width / intervals.length;
+  const dx = canvas.width / Math.max(intervals.length, 50);
   const dy = canvas.height / (high - low) * scale;
   const offset = canvas.height * (1 - scale) * 0.5;
   const step = Math.max(intervals.length / canvas.width, 1);
@@ -200,7 +200,7 @@ function drawVolume(intervals: Interval[]): void {
 
 function drawVwap({ intervals, vwap }: EnhancedSymbolData, scale: number = 1.0): void {
   const { high, low } = getRange(intervals);
-  const dx = canvas.width / vwap.length;
+  const dx = canvas.width / Math.max(vwap.length, 50);
   const dy = canvas.height / (high - low) * scale;
   const offset = canvas.height * (1 - scale) * 0.5;
   const points: Point[] = [];
@@ -322,14 +322,14 @@ export function plotDailyComposite({ intervals }: SymbolData): void {
     const averages: number[] = [];
     const dayKeys = Object.keys(dayGroupedIntervals);
     const dayGroups = dayKeys.map(key => dayGroupedIntervals[key]);
-    const INTERVALS_PER_DAY = Math.max(...dayGroups.map(group => group.length));
+    const intervalsPerDay = Math.max(...dayGroups.map(group => group.length));
     const scale = 0.5;
 
     function getAverage(numbers: number[]) {
       return numbers.reduce((total, n) => total + n, 0) / numbers.length;
     }
 
-    for (let i = 0; i < INTERVALS_PER_DAY; i++) {
+    for (let i = 0; i < intervalsPerDay; i++) {
       const compositedValues: number[] = [];
 
       for (const key of dayKeys) {
@@ -376,10 +376,14 @@ export function plotDailyComposite({ intervals }: SymbolData): void {
   canvas.render();
 }
 
-export function plotPartialDay({ intervals }: SymbolData, indexLimit: number): void {
+export function plotPartialDay(intervals: Interval[], vwap: number[], indexLimit: number): void {
   canvas.clear(Color.BACKGROUND);
 
-  drawIntervals(intervals.slice(0, indexLimit), 0.8);
+  const visibleIntervals = intervals.slice(0, indexLimit);
+  const visibleVwap = vwap.slice(0, indexLimit);
+
+  drawIntervals(visibleIntervals, 0.8);
+  drawVwap({ intervals: visibleIntervals, vwap: visibleVwap } as EnhancedSymbolData, 0.8);
 
   canvas.render();
 }

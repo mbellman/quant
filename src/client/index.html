@@ -16,7 +16,7 @@
 
       button {
         cursor: pointer;
-        padding: 1px;
+        padding: 1px 5px;
       }
 
       button:hover {
@@ -33,6 +33,24 @@
         width: 100%;
       }
 
+      .loader-overlay {
+        animation: pulse 2s ease-in-out infinite;
+        background-color: #005;
+        z-index: 5;
+      }
+
+      .day-trading-controls {
+        display: none;
+      }
+
+      #buy-button {
+        background-color: #0a0;
+      }
+
+      #sell-button {
+        background-color: red;
+      }
+
       @keyframes pulse {
         0% {
           opacity: 0.5;
@@ -46,12 +64,6 @@
           opacity: 0.5;
         }
       }
-
-      .loader-overlay {
-        animation: pulse 2s ease-in-out infinite;
-        background-color: #005;
-        z-index: 5;
-      }
     </style>
   </head>
   <body>
@@ -61,6 +73,10 @@
       <button id="intraday-button">Intraday</button>
       <button id="daily-composite-button">Daily Composite</button>
       <button id="day-trading-practice-button">Day Trading Practice</button>
+      <div class="day-trading-controls">
+        <button id="buy-button">Buy</button>
+        <button id="sell-button">Sell</button>
+      </div>
     </div>
     <canvas></canvas>
     <div class="loader-overlay"></div>

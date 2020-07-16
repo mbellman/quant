@@ -3,6 +3,16 @@ import { plotData, plotDailyComposite, plotPartialDay } from './render';
 import { IntervalType, SymbolData, EnhancedSymbolData } from '../types';
 import { linkIntervals } from './utilities';
 import { getHeikinAshiIntervals } from './technicals/heikin-ashi';
+import { getVolumeWeightedAveragePrice } from './technicals/vwap';
+
+interface DayTradingPracticeState {
+  index: number;
+  lastBuyPrice: number;
+  totalDelta: number;
+  isActive: boolean;
+  isHolding: boolean;
+  interval: number;
+}
 
 interface State {
   data: EnhancedSymbolData;
@@ -13,6 +23,7 @@ interface State {
   wheelMomentum: number;
   dragMomentum: number;
   isViewingHistory: boolean;
+  practice: DayTradingPracticeState;
 }
 
 const state: State = {
@@ -23,15 +34,27 @@ const state: State = {
   rightCutoff: 0,
   wheelMomentum: 0,
   dragMomentum: 0,
-  isViewingHistory: true
+  isViewingHistory: true,
+  practice: {
+    index: 0,
+    lastBuyPrice: 0,
+    totalDelta: 0,
+    isActive: false,
+    isHolding: false,
+    interval: null
+  }
 };
 
+function element<T extends HTMLElement>(selector: string): T {
+  return document.querySelector(selector);
+}
+
 async function load<T>(loadable: () => Promise<T>): Promise<T> {
-  (document.querySelector('.loader-overlay') as HTMLElement).style.display = 'block';
+  element('.loader-overlay').style.display = 'block';
 
   const data = await loadable();
 
-  (document.querySelector('.loader-overlay') as HTMLElement).style.display = 'none';
+  element('.loader-overlay').style.display = 'none';
 
   return data;
 }
@@ -45,7 +68,7 @@ function loadRandomDay(): Promise<SymbolData> {
 }
 
 async function showEnhancedSymbolData(symbol: string, type: IntervalType): Promise<void> {
-  (document.querySelector('#symbol') as HTMLInputElement).value = symbol;
+  element<HTMLInputElement>('#symbol').value = symbol;
 
   const data = await loadEnhancedSymbolData(symbol, type);
 
@@ -62,7 +85,7 @@ async function showEnhancedSymbolData(symbol: string, type: IntervalType): Promi
 }
 
 function getCurrentSymbol(): string {
-  return (document.querySelector('#symbol') as HTMLInputElement).value;
+  return element<HTMLInputElement>('#symbol').value;
 }
 
 function getTotalVisibleIntervals() {
@@ -116,6 +139,33 @@ function refreshChart(): void {
 
   plotData(state.data, state.leftCutoff, state.rightCutoff, state.mouseX, state.mouseY);
   requestAnimationFrame(refreshChart);
+}
+
+function startDayTradingPractice({ intervals }: SymbolData): void {
+  state.practice.isActive = true;
+
+  element('.day-trading-controls').style.display = 'inline-block';  
+
+  const vwap = getVolumeWeightedAveragePrice(intervals);
+  let step = 1;
+
+  function advanceSingleStep() {
+    plotPartialDay(intervals, vwap, step);
+
+    step++;
+  }
+
+  advanceSingleStep();
+
+  state.practice.interval = window.setInterval(advanceSingleStep, 2000);
+}
+
+function stopDayTradingPractice(): void {
+  state.practice.isActive = false;
+
+  window.clearInterval(state.practice.interval);
+
+  element('.day-trading-controls').style.display = 'none';
 }
 
 function bindEvents(): void {
@@ -185,15 +235,17 @@ function bindEvents(): void {
     });
   });
 
-  document.querySelector('#daily-button').addEventListener('click', () => {
+  element('#daily-button').addEventListener('click', () => {
     showEnhancedSymbolData(getCurrentSymbol(), IntervalType.DAILY);
+    stopDayTradingPractice();
   });
 
-  document.querySelector('#intraday-button').addEventListener('click', () => {
+  element('#intraday-button').addEventListener('click', () => {
     showEnhancedSymbolData(getCurrentSymbol(), IntervalType.INTRADAY);
+    stopDayTradingPractice();
   });
 
-  document.querySelector('#daily-composite-button').addEventListener('click', async () => {
+  element('#daily-composite-button').addEventListener('click', async () => {
     const data = await loadEnhancedSymbolData(getCurrentSymbol(), IntervalType.INTRADAY);
 
     state.wheelMomentum = 0;
@@ -201,9 +253,14 @@ function bindEvents(): void {
     state.isViewingHistory = false;
 
     plotDailyComposite(data);
+    stopDayTradingPractice();
   });
 
-  document.querySelector('#day-trading-practice-button').addEventListener('click', async () => {
+  element('#day-trading-practice-button').addEventListener('click', async () => {
+    if (state.practice.isActive) {
+      return;
+    }
+
     const data = await loadRandomDay();
 
     linkIntervals(data.intervals);
@@ -212,7 +269,7 @@ function bindEvents(): void {
     state.dragMomentum = 0;
     state.isViewingHistory = false;
 
-    plotPartialDay(data, data.intervals.length);
+    startDayTradingPractice(data);
   });
 }
 

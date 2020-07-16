@@ -26,9 +26,9 @@ function getCandleRect(interval: Interval, bounds: Rect): Rect {
   const bottomWickHeight = (candleBottom - low) * dy;
 
   return {
-    x: bounds.x,
+    x: bounds.x + 2,
     y: bounds.y + topWickHeight,
-    width: bounds.width,
+    width: bounds.width - 2,
     height: Math.max(bounds.height - topWickHeight - bottomWickHeight, 1)
   };
 }
