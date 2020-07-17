@@ -24,7 +24,8 @@ export async function getRandomDay(): Promise<SymbolData> {
     'TSLA',
     'NVDA',
     'FSLY',
-    'ROKU'
+    'ROKU',
+    'NFLX'
   ];
 
   const symbol = randomFrom(symbols);

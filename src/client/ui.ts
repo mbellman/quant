@@ -5,12 +5,18 @@ import { linkIntervals } from './utilities';
 import { getHeikinAshiIntervals } from './technicals/heikin-ashi';
 import { getVolumeWeightedAveragePrice } from './technicals/vwap';
 
+enum DayTradingMode {
+  CALL,
+  PUT
+}
+
 interface DayTradingPracticeState {
   intervals: Interval[];
   step: number;
-  buyingPrice: number;
-  delta: number;
+  startingPrice: number;
+  deltas: number[];
   timer: number;
+  mode: DayTradingMode;
   isActive: boolean;
   isHolding: boolean;
 }
@@ -39,9 +45,10 @@ const state: State = {
   practice: {
     intervals: [],
     step: 0,
-    buyingPrice: 0,
-    delta: 0,
+    startingPrice: 0,
+    deltas: [0],
     timer: null,
+    mode: DayTradingMode.CALL,
     isActive: false,
     isHolding: false,
   }
@@ -143,12 +150,15 @@ function refreshChart(): void {
   requestAnimationFrame(refreshChart);
 }
 
-function startDayTradingPractice({ intervals }: SymbolData): void {
+function startDayTradingPractice(intervals: Interval[]): void {
   state.practice.isActive = true;
   state.practice.intervals = intervals;
   state.practice.step = 0;
+  state.practice.deltas = [0];
 
-  element('.day-trading-controls').style.display = 'inline-block';  
+  element('.day-trading-controls').style.display = 'inline-block';
+  element('#day-trading-delta').innerHTML = '0';
+  element('#day-trading-delta-total').innerHTML = '(0)';
 
   const vwap = getVolumeWeightedAveragePrice(intervals);
 
@@ -158,13 +168,39 @@ function startDayTradingPractice({ intervals }: SymbolData): void {
     plotPartialDay(intervals, vwap, state.practice.step);
 
     if (state.practice.isHolding) {
+      state.practice.deltas[state.practice.deltas.length - 1] = getDayTradingDelta();
+
       element('#day-trading-delta').innerHTML = getDayTradingDelta().toString();
+      element('#day-trading-delta-total').innerHTML = `(${getDayTradingDeltaTotal().toString()})`;
     }
   }
 
   advanceSingleStep();
 
   state.practice.timer = window.setInterval(advanceSingleStep, 2000);
+}
+
+function enterDayTrade(mode: DayTradingMode): void {
+  if (state.practice.isHolding) {
+    return;
+  }
+
+  element('#day-trading-delta').innerHTML = '0';
+
+  state.practice.mode = mode;
+  state.practice.startingPrice = getCurrentDayTradingPrice();
+  state.practice.isHolding = true;
+}
+
+function exitDayTrade(): void {
+  if (!state.practice.isHolding) {
+    return;
+  }
+
+  state.practice.isHolding = false;
+  state.practice.deltas.push(0);
+
+  element('#day-trading-delta').innerHTML = '0';
 }
 
 function stopDayTradingPractice(): void {
@@ -183,9 +219,16 @@ function getCurrentDayTradingPrice(): number {
 }
 
 function getDayTradingDelta(): number {
-  const delta = getCurrentDayTradingPrice() - state.practice.buyingPrice;
+  const deltaFactor = state.practice.mode === DayTradingMode.CALL ? 1 : -1;
+  const delta = getCurrentDayTradingPrice() - state.practice.startingPrice;
 
-  return Math.round(delta * 100) / 100;
+  return deltaFactor * Math.round(delta * 100) / 100;
+}
+
+function getDayTradingDeltaTotal(): number {
+  const sum = state.practice.deltas.reduce((sum, delta) => sum + delta, 0);
+
+  return Math.round(sum * 100) / 100;
 }
 
 function bindEvents(): void {
@@ -289,22 +332,19 @@ function bindEvents(): void {
     state.dragMomentum = 0;
     state.isViewingHistory = false;
 
-    startDayTradingPractice(data);
+    startDayTradingPractice(data.intervals);
   });
 
-  element('#buy-button').addEventListener('click', () => {
-    if (state.practice.isHolding) {
-      return;
-    }
+  element('#call-button').addEventListener('click', () => {
+    enterDayTrade(DayTradingMode.CALL);
+  });
 
-    element('#day-trading-delta').innerHTML = '0';
-
-    state.practice.buyingPrice = getCurrentDayTradingPrice();
-    state.practice.isHolding = true;
+  element('#put-button').addEventListener('click', () => {
+    enterDayTrade(DayTradingMode.PUT);
   });
 
   element('#sell-button').addEventListener('click', () => {
-    state.practice.isHolding = false;
+    exitDayTrade();
   });
 }
 

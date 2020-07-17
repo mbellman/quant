@@ -82,9 +82,9 @@ function drawGridLines({ intervals, type }: SymbolData, scale: number = 1.0, mou
   }
 }
 
-function drawIntervals(intervals: Interval[], scale: number = 1.0): void {
+function drawIntervals(intervals: Interval[], scale: number = 1.0, buffer: number = 0): void {
   const { high, low } = getRange(intervals);
-  const dx = canvas.width / Math.max(intervals.length, 50);
+  const dx = (canvas.width - buffer) / Math.max(intervals.length, 50);
   const dy = canvas.height / (high - low) * scale;
   const offset = canvas.height * (1 - scale) * 0.5;
   const step = Math.max(intervals.length / canvas.width, 1);
@@ -170,8 +170,8 @@ function drawReversals({ intervals, peaks, dips }: EnhancedSymbolData, scale: nu
   plotReversals(dips, Color.RED, interval => (high - interval.low) * dy + offset + 10);
 }
 
-function drawVolume(intervals: Interval[]): void {
-  const dx = canvas.width / intervals.length;
+function drawVolume(intervals: Interval[], buffer: number = 0): void {
+  const dx = (canvas.width - buffer) / Math.max(intervals.length, 50);
   const highestVolume = Math.max(...intervals.map(({ volume }) => volume));
   const step = Math.max(intervals.length / canvas.width, 1);
 
@@ -198,9 +198,9 @@ function drawVolume(intervals: Interval[]): void {
   canvas.setAlpha(1.0);
 }
 
-function drawVwap({ intervals, vwap }: EnhancedSymbolData, scale: number = 1.0): void {
+function drawVwap({ intervals, vwap }: EnhancedSymbolData, scale: number = 1.0, buffer: number = 0): void {
   const { high, low } = getRange(intervals);
-  const dx = canvas.width / Math.max(vwap.length, 50);
+  const dx = (canvas.width - buffer) / Math.max(vwap.length, 50);
   const dy = canvas.height / (high - low) * scale;
   const offset = canvas.height * (1 - scale) * 0.5;
   const points: Point[] = [];
@@ -382,8 +382,9 @@ export function plotPartialDay(intervals: Interval[], vwap: number[], indexLimit
   const visibleIntervals = intervals.slice(0, indexLimit);
   const visibleVwap = vwap.slice(0, indexLimit);
 
-  drawIntervals(visibleIntervals, 0.8);
-  drawVwap({ intervals: visibleIntervals, vwap: visibleVwap } as EnhancedSymbolData, 0.8);
+  drawIntervals(visibleIntervals, 0.8, 200);
+  drawVwap({ intervals: visibleIntervals, vwap: visibleVwap } as EnhancedSymbolData, 0.8, 200);
+  drawVolume(visibleIntervals, 200);
 
   canvas.render();
 }

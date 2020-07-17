@@ -46,12 +46,16 @@
         display: none;
       }
 
-      #buy-button {
+      #call-button {
         background-color: #0a0;
       }
 
+      #put-button {
+        background-color: #a00;
+      }
+
       #sell-button {
-        background-color: red;
+        background-color: #00a;
       }
 
       @keyframes pulse {
@@ -77,9 +81,10 @@
       <button id="daily-composite-button">Daily Composite</button>
       <button id="day-trading-practice-button">Day Trading Practice</button>
       <div class="day-trading-controls">
-        <button id="buy-button">Buy</button>
+        <button id="call-button">Call</button>
+        <button id="put-button">Put</button>
         <button id="sell-button">Sell</button>
-        Delta: <span id="day-trading-delta">0</span>
+        Delta: <span id="day-trading-delta">0</span> <span id="day-trading-delta-total">(0)</span>
       </div>
     </div>
     <canvas></canvas>
