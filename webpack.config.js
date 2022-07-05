@@ -15,6 +15,7 @@ module.exports = {
   },
   devServer: {
     open: true,
+    port: process.env.PORT || 1234,
     onBeforeSetupMiddleware: ({ app }) => {
       app.get('/api/:symbol/:type', async (req, res) => {
         clearModuleCache();
