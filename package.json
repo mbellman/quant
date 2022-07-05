@@ -4,11 +4,12 @@
   "description": "Just dabbling.",
   "main": "index.js",
   "scripts": {
-    "build:server": "rm -rf dist/server && npx tsc",
+    "build:server": "rm -rf dist/server && npm run tsc",
     "build:client": "rm -rf dist/client && webpack --config webpack.config.js",
     "build": "npm run build:server && npm run build:client",
     "start:hot": "npm run build && node start-hot.js",
-    "start": "npm run build && node start.js"
+    "start": "npm run build && node start.js",
+    "tsc": "tsc"
   },
   "repository": {
     "type": "git",
