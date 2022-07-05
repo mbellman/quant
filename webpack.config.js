@@ -15,7 +15,7 @@ module.exports = {
   },
   devServer: {
     open: true,
-    before: app => {
+    onBeforeSetupMiddleware: ({ app }) => {
       app.get('/api/:symbol/:type', async (req, res) => {
         clearModuleCache();
 
