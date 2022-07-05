@@ -71,6 +71,8 @@ function drawGridLines({ intervals, type }: SymbolData, scale: number = 1.0, mou
   canvas.line({ from: { x: 0, y: canvas.height / 2 }, to: { x: canvas.width, y: canvas.height / 2 } });
   canvas.line({ from: { x: 0, y: canvas.height - offset }, to: { x: canvas.width, y: canvas.height - offset } });
 
+  canvas.text('14px Arial', Color.WHITE, getDividerLabel(intervals[0]), { x: 5, y: 20 });
+
   for (let i = 1; i < intervals.length; i++) {
     const previousInterval = intervals[i - 1];
     const interval = intervals[i];

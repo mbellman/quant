@@ -97,25 +97,37 @@ function getCurrentSymbol(): string {
   return element<HTMLInputElement>('#symbol').value;
 }
 
-function getTotalVisibleIntervals() {
+function getTotalVisibleIntervals(): number {
   return state.data.intervals.length - (state.leftCutoff + state.rightCutoff);
 }
 
+function getMouseXRatio(): number {
+  return state.mouseX / document.body.clientWidth;
+}
+
 function updateCutoff(left: number, right: number): void {
+  const { intervals } = state.data;
   const newLeftCutoff = Math.max(state.leftCutoff + left, 0);
   const newRightCutoff = Math.max(state.rightCutoff + right, 0);
-  const totalRemainingIntervals = state.data.intervals.length - newRightCutoff - newLeftCutoff;
+  const totalRemainingIntervals = intervals.length - newLeftCutoff - newRightCutoff;
 
-  if (totalRemainingIntervals > 50) {
+  if (totalRemainingIntervals >= 50) {
     state.leftCutoff = newLeftCutoff;
     state.rightCutoff = newRightCutoff;
+  } else {
+    const midpoint = Math.round((newLeftCutoff + newRightCutoff) / 2);
+
+    state.leftCutoff = midpoint - Math.round((1 - getMouseXRatio()) * 25);
+    state.rightCutoff = intervals.length - state.leftCutoff - 50;
   }
 }
 
 function updateZoom(): void {
-  const r = state.mouseX / document.body.clientWidth;
+  if (getTotalVisibleIntervals() > 50 || state.wheelMomentum > 0) {
+    const mouseXRatio = getMouseXRatio();
 
-  updateCutoff(-Math.round(state.wheelMomentum * r), -Math.round(state.wheelMomentum * (1 - r)));
+    updateCutoff(-Math.round(state.wheelMomentum * mouseXRatio), -Math.round(state.wheelMomentum * (1 - mouseXRatio)));
+  }
 
   state.wheelMomentum *= 0.9;
 }
@@ -243,7 +255,6 @@ function bindEvents(): void {
     );
 
     state.wheelMomentum += e.deltaY;
-    state.wheelMomentum *= 1.1;
     state.mouseX = e.clientX;
 
     if (shouldRefreshChart) {
@@ -296,11 +307,6 @@ function bindEvents(): void {
     document.addEventListener('mouseup', () => {
       document.removeEventListener('mousemove', onMouseMove);
     });
-  });
-
-  element('#daily-button').addEventListener('click', () => {
-    showEnhancedSymbolData(getCurrentSymbol(), IntervalType.DAILY);
-    stopDayTradingPractice();
   });
 
   element('#intraday-button').addEventListener('click', () => {

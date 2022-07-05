@@ -21,7 +21,6 @@ export async function getRandomDay(): Promise<SymbolData> {
     'SQ',
     'TWTR',
     'SPY',
-    'TSLA',
     'NVDA',
     'FSLY',
     'ROKU',
